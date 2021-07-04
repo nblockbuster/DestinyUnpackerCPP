@@ -11,3 +11,5 @@ This work is covered under GPLv3, although if derivative work is published or th
 
 
 Modified to export .WEM files by nblock, with major help from Philip
+
+Default output folder is "output pkgid".
