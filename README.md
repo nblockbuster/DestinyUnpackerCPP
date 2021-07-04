@@ -8,3 +8,6 @@ This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 d
 ## Licensing
 
 This work is covered under GPLv3, although if derivative work is published or this work is used in another tool please provide a credit to myself or this page.
+
+
+Modified to export .WEM files by nblock, with major help from Philip
