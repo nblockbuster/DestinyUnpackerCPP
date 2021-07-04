@@ -14,6 +14,7 @@
 #include "helpers.h"
 #include <unordered_map>
 
+
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
 std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
 bool saveH64Table(std::unordered_map<uint64_t, uint32_t> hash64Table);
@@ -63,8 +64,7 @@ private:
 	{
 		0x84, 0xEA, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
 	};
-
-	const std::string CUSTOM_DIR = "I:/test_out/pkg/";
+	const std::string CUSTOM_DIR = "output";
 
 	FILE* pkgFile;
 	std::vector<Block> blocks;

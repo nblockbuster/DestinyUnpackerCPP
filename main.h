@@ -5,8 +5,7 @@
 #include <vector>
 #include <unordered_map>
 #include <sstream>
-#include <fstream>
-
+#include <fstream> 
 
 bool getLatestPatchIDs_Str(std::vector<std::string>& latestPackages, std::string packagesPath);
 bool getLatestPatchIDs_Bin(std::vector<std::string>& latestPackages, std::string packagesPath);

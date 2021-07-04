@@ -169,7 +169,7 @@ void Package::modifyNonce()
 void Package::extractFiles()
 {
     std::vector<std::string> pkgPatchStreamPaths;
-    std::string outputPath = CUSTOM_DIR + "/output/" + uint16ToHexStr(header.pkgID);
+    std::string outputPath = CUSTOM_DIR + " " + uint16ToHexStr(header.pkgID);
     std::filesystem::create_directories(outputPath);
     // Initialising the required file streams
     for (int i = 0; i <= header.patchID; i++)
