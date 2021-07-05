@@ -18,6 +18,7 @@ Default output folder is in a folder called "`output pkgid`" in the same directo
 -----
 
 Thanks to Philip for helping me to get it extracting .WEMs
+
 Thanks to HighRTT for letting me use his WEM to WAV converter library
 
 ## Licensing
