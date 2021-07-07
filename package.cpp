@@ -1,6 +1,5 @@
 #include "package.h"
 
-
 const static unsigned char AES_KEY_0[16] =
 {
 	0xD6, 0x2A, 0xB2, 0xC1, 0x0C, 0xC0, 0x1B, 0xC5, 0x35, 0xDB, 0x7B, 0x86, 0x55, 0xC7, 0xDC, 0x3B,
@@ -168,79 +167,79 @@ void Package::modifyNonce()
 
 void Package::extractFiles()
 {
-    std::vector<std::string> pkgPatchStreamPaths;
-    std::string outputPath = CUSTOM_DIR + " " + uint16ToHexStr(header.pkgID);
-    std::filesystem::create_directories(outputPath);
-    // Initialising the required file streams
-    for (int i = 0; i <= header.patchID; i++)
-    {
-        std::string pkgPatchPath = packagePath;
-        pkgPatchPath[pkgPatchPath.size() - 5] = char(i + 48);
-        pkgPatchStreamPaths.push_back(pkgPatchPath);
-        std::cout << pkgPatchPath << "\n";
-    }
-    // Extracting each entry to a file
-    for (int i = 0; i < entries.size(); i++)
-    {
-        Entry entry = entries[i];
-        if ((entry.numType == 26) && (entry.numSubType == 7))
-        {
-            int currentBlockID = entry.startingBlock;
-            int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
-            int lastBlockID = currentBlockID + blockCount;
-            unsigned char* fileBuffer = new unsigned char[entry.fileSize];
-            int currentBufferOffset = 0;
-            while (currentBlockID <= lastBlockID)
-            {
-                Block currentBlock = blocks[currentBlockID];
+	std::vector<std::string> pkgPatchStreamPaths;
+	std::string outputPath = CUSTOM_DIR + " " + uint16ToHexStr(header.pkgID);
+	std::filesystem::create_directories(outputPath);
+	// Initialising the required file streams
+	for (int i = 0; i <= header.patchID; i++)
+	{
+		std::string pkgPatchPath = packagePath;
+		pkgPatchPath[pkgPatchPath.size() - 5] = char(i + 48);
+		pkgPatchStreamPaths.push_back(pkgPatchPath);
+		std::cout << pkgPatchPath << "\n";
+	}
+	// Extracting each entry to a file
+	for (int i = 0; i < entries.size(); i++)
+	{
+		Entry entry = entries[i];
+		if ((entry.numType == 26) && (entry.numSubType == 7))
+		{
+			int currentBlockID = entry.startingBlock;
+			int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
+			int lastBlockID = currentBlockID + blockCount;
+			unsigned char* fileBuffer = new unsigned char[entry.fileSize];
+			int currentBufferOffset = 0;
+			while (currentBlockID <= lastBlockID)
+			{
+				Block currentBlock = blocks[currentBlockID];
 
-                FILE* pFile;
-                fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
-                fseek(pFile, currentBlock.offset, SEEK_SET);
-                unsigned char* blockBuffer = new unsigned char[currentBlock.size];
-                size_t result;
-                result = fread(blockBuffer, 1, currentBlock.size, pFile);
-                if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
+				FILE* pFile;
+				fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
+				fseek(pFile, currentBlock.offset, SEEK_SET);
+				unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+				size_t result;
+				result = fread(blockBuffer, 1, currentBlock.size, pFile);
+				if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
 
-                unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
-                unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
+				unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
+				unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
 
-                if (currentBlock.bitFlag & 0x2)
-                    decryptBlock(currentBlock, blockBuffer, decryptBuffer);
-                else
-                    decryptBuffer = blockBuffer;
+				if (currentBlock.bitFlag & 0x2)
+					decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+				else
+					decryptBuffer = blockBuffer;
 
-                if (currentBlock.bitFlag & 0x1)
-                    decompressBlock(currentBlock, decryptBuffer, decompBuffer);
-                else
-                    decompBuffer = decryptBuffer;
+				if (currentBlock.bitFlag & 0x1)
+					decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+				else
+					decompBuffer = decryptBuffer;
 
-                if (currentBlockID == entry.startingBlock)
-                {
-                    size_t cpySize;
-                    if (currentBlockID == lastBlockID)
-                        cpySize = entry.fileSize;
-                    else
-                        cpySize = BLOCK_SIZE - entry.startingBlockOffset;
-                    memcpy(fileBuffer, decompBuffer + entry.startingBlockOffset, cpySize);
-                    currentBufferOffset += cpySize;
-                }
-                else if (currentBlockID == lastBlockID)
-                {
-                    memcpy(fileBuffer + currentBufferOffset, decompBuffer, entry.fileSize - currentBufferOffset);
-                }
-                else
-                {
-                    memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
-                    currentBufferOffset += BLOCK_SIZE;
-                }
+				if (currentBlockID == entry.startingBlock)
+				{
+					size_t cpySize;
+					if (currentBlockID == lastBlockID)
+						cpySize = entry.fileSize;
+					else
+						cpySize = BLOCK_SIZE - entry.startingBlockOffset;
+					memcpy(fileBuffer, decompBuffer + entry.startingBlockOffset, cpySize);
+					currentBufferOffset += cpySize;
+				}
+				else if (currentBlockID == lastBlockID)
+				{
+					memcpy(fileBuffer + currentBufferOffset, decompBuffer, entry.fileSize - currentBufferOffset);
+				}
+				else
+				{
+					memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
+					currentBufferOffset += BLOCK_SIZE;
+				}
 
-                fclose(pFile);
-                currentBlockID++;
-                delete[] decompBuffer;
-            }
+				fclose(pFile);
+				currentBlockID++;
+				delete[] decompBuffer;
+			}
 
-            FILE* oFile;
+			FILE* oFile;
             std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".wem";
             fopen_s(&oFile, name.c_str(), "wb");
             fwrite(fileBuffer, entry.fileSize, 1, oFile);
