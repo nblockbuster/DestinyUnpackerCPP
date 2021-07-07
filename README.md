@@ -5,21 +5,25 @@ Valid for all Destiny 2: Beyond Light packages from version 3.0.0.0 onward.
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
+Requires Sarge to build for command line args
+
 -----
 
-Usage: `DestinyUnpackerCPP.exe -p "path to packages"`
-It'll then ask for what package id you want to extract (eg. 02f6 or 0144)
+Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i [input package id]`
 
-Requires Sarge to build for command line args
+(Package ID here refers to 02f6 or 0144 for example)
+
 Modified to export .WEM files by nblock, with major help from Philip
 
 Default output folder is in a folder called "`output pkgid`" in the same directory as the exe. 
 
 -----
 
+Obvious thanks to Mont for making his code public
+
 Thanks to Philip for helping me to get it extracting .WEMs
 
-Thanks to HighRTT for letting me use his WEM to WAV converter library
+Thanks to HighRTT for helping out a lot
 
 ## Licensing
 
