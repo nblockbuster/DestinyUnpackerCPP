@@ -11,7 +11,7 @@ Requires Sarge to build for command line args
 
 -----
 
-Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id`
+Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts to wav)`
 
 (Package ID here refers to 02f6 or 0144 for example)
 
