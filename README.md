@@ -15,7 +15,7 @@ Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (con
 
 (Package ID here refers to 02f6 or 0144 for example)
 
-Modified to export .WEM files by nblock, with major help from Philip
+Modified to export .WEM files by nblock, with major help from Philip & HighRTT
 
 Default output folder is in a folder called "`output pkgid`" in the same directory as the exe. 
 
