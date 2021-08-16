@@ -8,7 +8,10 @@
 #include "Sarge/src/sarge.cpp"
 #include <stdio.h>
 
+namespace fs = std::filesystem;
+
 // Using Sarge to parse command line args: https://mayaposch.wordpress.com/2019/03/17/parsing-command-line-arguments-in-c/
+
 
 static void show_usage()
 {
@@ -16,7 +19,7 @@ static void show_usage()
 		<< std::endl;
 }
 
-namespace fs = std::filesystem;
+
 
 int main(int argc, char** argv)
 {
@@ -68,20 +71,45 @@ int main(int argc, char** argv)
 	//probably way overcomplicated but it works for now, thats all that matters
 
 	if (sarge.exists("wavconv")) {
+		//probably way overcomplicated but it works for now, thats all that matters
 
+		fs::directory_iterator end_itr;
 		for (const auto& entry : fs::directory_iterator(outputPath)) {
+
 			std::wstring dwide = entry.path();
-			std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath), [](wchar_t c) {
+			std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath2), [](wchar_t c) {
 				return (char)c; });
-			wempath.insert(0, "\"");
-			wempath.append("\"");
-			cmdstr = std::string("test.exe") + std::string(" ") + wempath;
-			system(cmdstr.c_str());
-			std::cout << "Converted " + wempath << std::endl;
-			wempath.clear();
+			wempath2.insert(0, "\"");
+			wempath2.append("\"");
+			fs::path path(wempath2);
+			if (entry.path().extension() == ".wem")
+			{
+				std::wstring dwide = entry.path();
+				std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath), [](wchar_t c) {
+					return (char)c; });
+				wempath.insert(0, "\"");
+				wempath.append("\"");
+				cmdstr = std::string("res\\vgmstream\\test.exe") + std::string(" ") + wempath;
+				std::cout << "Converting..." << std::endl;
+
+				LPSTR cmdstrc = const_cast<char*>(cmdstr.c_str());
+				STARTUPINFOA startUpInfo = { 0 };
+				PROCESS_INFORMATION processInformation = { 0 };
+				startUpInfo.cb = sizeof(STARTUPINFOA);
+
+				CreateProcessA(NULL, cmdstrc, NULL, NULL, NULL, FALSE, 0, NULL, &startUpInfo, &processInformation);
+
+				std::cout << "Converted " + wempath << std::endl;
+				wempath.clear();
+				cmdstr.clear();
+			}
 		}
-		std::string delWemPaths = "del " + outPath2 + "*.wem";
-		system(delWemPaths.c_str());
+		std::string delWemPaths = "cmd.exe del " + outPath2 + "*.wem";
+		LPSTR delwempc = const_cast<char*>(delWemPaths.c_str());
+		STARTUPINFOA startUpInfo = { 0 };
+		PROCESS_INFORMATION processInformation = { 0 };
+		startUpInfo.cb = sizeof(STARTUPINFOA);
+		CreateProcessA(NULL, delwempc, NULL, NULL, NULL, FALSE, 0, NULL, &startUpInfo, &processInformation);
 		std::cout << "Purged .WEMS leftover from conversion";
 	}
 	if (sarge.exists("deletewems")) {
@@ -93,8 +121,12 @@ int main(int argc, char** argv)
 			wempath.insert(0, "\"");
 			wempath.append("\"");
 			//std::cout << wempath << std::endl;
-			std::string delWemPaths = "del " + outPath2 + "*.wem";
-			system(delWemPaths.c_str());
+			std::string delWemPaths = "cmd.exe del " + outPath2 + "*.wem";
+			LPSTR delwempc = const_cast<char*>(delWemPaths.c_str());
+			STARTUPINFOA startUpInfo = { 0 };
+			PROCESS_INFORMATION processInformation = { 0 };
+			startUpInfo.cb = sizeof(STARTUPINFOA);
+			CreateProcessA(NULL, delwempc, NULL, NULL, NULL, FALSE, 0, NULL, &startUpInfo, &processInformation);
 			wempath.clear();
 		}
 	
