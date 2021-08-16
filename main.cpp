@@ -62,9 +62,10 @@ int main(int argc, char** argv)
 
 	Package Pkg(pkgId, packagesPath);
 	Pkg.Unpack();
-	
+
 	std::string outputPath = "output" + pkgId + "/";
 	std::string outPath2 = "output" + pkgId + "\\";
+	std::string wempath2;
 	std::string wempath;
 	std::string cmdstr;
 
@@ -113,7 +114,7 @@ int main(int argc, char** argv)
 		std::cout << "Purged .WEMS leftover from conversion";
 	}
 	if (sarge.exists("deletewems")) {
-		
+
 		for (const auto& entry : fs::directory_iterator(outputPath)) {
 			std::wstring dwide = entry.path();
 			std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath), [](wchar_t c) {
@@ -129,8 +130,8 @@ int main(int argc, char** argv)
 			CreateProcessA(NULL, delwempc, NULL, NULL, NULL, FALSE, 0, NULL, &startUpInfo, &processInformation);
 			wempath.clear();
 		}
-	
+
 	}
 
-return 0;
+	return 0;
 }
