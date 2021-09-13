@@ -22,10 +22,16 @@ struct PkgHeader
 {
 	uint16_t pkgID;
 	uint16_t patchID;
+	uint16_t newFlag;
+	uint32_t newTableOffset;
 	uint32_t entryTableOffset;
+	uint32_t entryTableOffsetTemp;
+	char entryTableHash;
 	uint32_t entryTableSize;
 	uint32_t blockTableOffset;
-	uint32_t blockTableSize;
+	uint32_t blockTableOffsetTemp;
+	uint16_t blockTableSize;
+	char blockTableHash;
 	uint32_t hash64TableOffset;
 	uint32_t hash64TableSize;
 };
@@ -73,21 +79,24 @@ private:
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
 
-
+	uint8_t extract_entry_data();
+	uint32_t block_count();
 	void getBlockTable();
 	void extractFiles();
 	void decryptBlock(Block block, unsigned char* blockBuffer, unsigned char* &decryptBuffer);
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 
 public:
-	std::string packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
+	std::string packagesPath = "D:/Program Files (x86)/Steam/steamapps/common/Destiny 2/packages/";
 	std::string packagePath;
 	std::string packageName;
+	bool hexID;
+	bool hexid2;
 	PkgHeader header;
 	std::vector<Entry> entries;
 
 	// Constructor
-	Package(std::string packageID, std::string pkgsPath);
+	Package(std::string packageID, std::string pkgsPath, bool hexID);
 
 	bool initOodle();
 	void modifyNonce();

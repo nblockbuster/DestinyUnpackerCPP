@@ -1,4 +1,6 @@
 #include "package.h"
+#include <iostream>
+#include <fstream>
 
 const static unsigned char AES_KEY_0[16] =
 {
@@ -12,8 +14,9 @@ const static unsigned char AES_KEY_1[16] =
 
 const int BLOCK_SIZE = 0x40000;
 
-Package::Package(std::string packageID, std::string pkgsPath)
+Package::Package(std::string packageID, std::string pkgsPath, bool hexID)
 {
+	hexid2 = hexID;
 	packagesPath = pkgsPath;
 	if (!std::filesystem::exists(packagesPath))
 	{
@@ -98,7 +101,7 @@ bool Package::readHeader()
 
 	if (header.newFlag != 1)
 	{
-		//old package header structure, should work, not 1000% sure
+		//old package header structure
 		fseek(pkgFile, 180, SEEK_SET);
 		std::cout << "Old Package Structure" << std::endl;
 		fseek(pkgFile, 0xB4, SEEK_SET);
@@ -110,6 +113,7 @@ bool Package::readHeader()
 		//fseek(pkgFile, 188, SEEK_SET);
 		//fread((char*)&entryTableHash, 1, 14, pkgFile);
 		//std::cout << "Entry Table Hash: " + std::to_string(header.entryTableHash) << std::endl;
+		
 		fseek(pkgFile, 0xD0, SEEK_SET);
 		fread((char*)&header.blockTableSize, 1, 4, pkgFile);
 		std::cout << "Block Table Size/Count: " + std::to_string(header.blockTableSize) << std::endl;
@@ -145,8 +149,9 @@ bool Package::readHeader()
 
 	}
 	
-
-	// Hash64 Table, not sure if needed or not but left out to cut down on issues, if any
+	//dont know if h64 is neeeeeded, but doesnt break anything yet
+	 
+	// Hash64 Table
 	/*
 	fseek(pkgFile, 0xB8, SEEK_SET);
 	fread((char*)&header.hash64TableSize, 1, 4, pkgFile);
@@ -155,70 +160,76 @@ bool Package::readHeader()
 	*/
 	return true;
 }
+uint32_t entryA;
 
 void Package::getEntryTable()
 {
-	for (uint32_t i = header.entryTableOffset; i < header.entryTableOffset + header.entryTableSize * 16; i += 16)
-	{
-		Entry entry;
+		for (uint32_t i = header.entryTableOffset; i < header.entryTableOffset + header.entryTableSize * 16; i += 16)
+		{
+			Entry entry;
 
-		// EntryA
-		uint32_t entryA;
-		fseek(pkgFile, i, SEEK_SET);
-		fread((char*)&entryA, 1, 4, pkgFile);
-		entry.reference = uint32ToHexStr(entryA);
+			// EntryA
+			fseek(pkgFile, i, SEEK_SET);
+			fread((char*)&entryA, 1, 4, pkgFile);
+			entry.reference = uint32ToHexStr(entryA);
 
-		// EntryB
-		uint32_t entryB;
-		fread((char*)&entryB, 1, 4, pkgFile);
-		entry.numType = (entryB >> 9) & 0x7F;
-		entry.numSubType = (entryB >> 6) & 0x7;
+			// EntryB
+			uint32_t entryB;
+			fread((char*)&entryB, 1, 4, pkgFile);
+			entry.numType = (entryB >> 9) & 0x7F;
+			entry.numSubType = (entryB >> 6) & 0x7;
+			//std::cout << ((entryB >> 6) & 0x7) << std::endl;
+			//std::cout << ((entryB >> 9) & 0x7F) << std::endl;
 
-		// EntryC
-		uint32_t entryC;
-		fread((char*)&entryC, 1, 4, pkgFile);
-		entry.startingBlock = entryC & 0x3FFF;
-		entry.startingBlockOffset = ((entryC >> 14) & 0x3FFF) << 4;
+			// EntryC
+			uint32_t entryC;
+			fread((char*)&entryC, 1, 4, pkgFile);
+			entry.startingBlock = entryC & 0x3FFF;
+			entry.startingBlockOffset = ((entryC >> 14) & 0x3FFF) << 4;
 
-		// EntryD
-		uint32_t entryD;
-		fread((char*)&entryD, 1, 4, pkgFile);
-		entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;
+			// EntryD
+			uint32_t entryD;
+			fread((char*)&entryD, 1, 4, pkgFile);
+			entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;	
 
-		entries.push_back(entry);
-	}
+			entries.push_back(entry);
+
+			uint32_t block_count = (((entry.startingBlockOffset) + entry.fileSize + 262144 - 1) / 262144); //was testing this, unneeded
+		}
 }
 
 void Package::getBlockTable()
 {
-	for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 48; i += 48)
-	{
-		Block block = { 0, 0, 0, 0, 0, 0 };
-		fseek(pkgFile, i, SEEK_SET);
-		fread((char*)&block.offset, 1, 4, pkgFile);
-		fread((char*)&block.size, 1, 4, pkgFile);
-		fread((char*)&block.patchID, 1, 2, pkgFile);
-		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fread((char*)&block.hash, 20, 1, pkgFile);
-		fread((char*)&block.gcmTag, 16, 1, pkgFile);
-		blocks.push_back(block);
-	}
+		for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 48; i += 48)
+		{
+			
+			Block block = { 0, 0, 0, 0, 0, 0 };
+			fseek(pkgFile, i, SEEK_SET);
+			fread((char*)&block.offset, 1, 4, pkgFile);
+			fread((char*)&block.size, 1, 4, pkgFile);
+			fread((char*)&block.patchID, 1, 2, pkgFile);
+			fread((char*)&block.bitFlag, 1, 2, pkgFile);
+			fread((char*)&block.hash, 20, 1, pkgFile);
+			fread((char*)&block.gcmTag, 16, 1, pkgFile);
+			blocks.push_back(block);
+
+		}
+	
 }
 
 void Package::modifyNonce()
 {
-	// Nonce
 	nonce[0] ^= (header.pkgID >> 8) & 255;
 	nonce[1] ^= 38;
 	nonce[11] ^= header.pkgID & 255;
 }
-
 void Package::extractFiles()
 {
+
 	std::vector<std::string> pkgPatchStreamPaths;
 	std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
 	std::filesystem::create_directories(outputPath);
-	
+
 	// Initialising the required file streams
 	for (int i = 0; i <= header.patchID; i++)
 	{
@@ -227,21 +238,88 @@ void Package::extractFiles()
 		pkgPatchStreamPaths.push_back(pkgPatchPath);
 		std::cout << pkgPatchPath << "\n";
 	}
-	
 	// Extracting each entry to a file
 	for (int i = 0; i < entries.size(); i++)
 	{
 		Entry entry = entries[i];
+		std::string Hambit = entry.reference;
+
 		//wems
 
-		//bl swapped wem & bnk subtype it seems? wem is 26/6 , but 26/7 in bl
+		//bl swapped wem & bnk subtype it seems?
 
 		//no, changed num/subnumtype of bnks...
 
 		//they did! bnks are 25/5 instead of 25/6!
 
-		if ((entry.numType == 26) && (entry.numSubType == 7))
+		if ((entry.numType == 26) && (entry.numSubType == 6))
 		{
+			if (hexid2) {
+				std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/wem";
+				std::filesystem::create_directories(outputPath);
+				int currentBlockID = entry.startingBlock;
+				int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
+				int lastBlockID = currentBlockID + blockCount;
+				unsigned char* fileBuffer = new unsigned char[entry.fileSize];
+				int currentBufferOffset = 0;
+				while (currentBlockID <= lastBlockID)
+				{
+					Block currentBlock = blocks[currentBlockID];
+					FILE* pFile;
+					fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
+					fseek(pFile, currentBlock.offset, SEEK_SET);
+					unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+					size_t result;
+					result = fread(blockBuffer, 1, currentBlock.size, pFile);
+					if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
+
+					unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
+					unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
+
+					if (currentBlock.bitFlag & 0x2)
+						decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+					else
+						decryptBuffer = blockBuffer;
+
+					if (currentBlock.bitFlag & 0x1)
+						decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+					else
+						decompBuffer = decryptBuffer;
+
+					if (currentBlockID == entry.startingBlock)
+					{
+						size_t cpySize;
+						if (currentBlockID == lastBlockID)
+							cpySize = entry.fileSize;
+						else
+							cpySize = BLOCK_SIZE - entry.startingBlockOffset;
+						memcpy(fileBuffer, decompBuffer + entry.startingBlockOffset, cpySize);
+						currentBufferOffset += cpySize;
+					}
+					else if (currentBlockID == lastBlockID)
+					{
+						memcpy(fileBuffer + currentBufferOffset, decompBuffer, entry.fileSize - currentBufferOffset);
+					}
+					else
+					{
+						memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
+						currentBufferOffset += BLOCK_SIZE;
+					}
+
+					fclose(pFile);
+					currentBlockID++;
+					delete[] decompBuffer;
+				}
+				FILE* oFile;
+				std::string name = outputPath + "/" + Hambit + ".wem";
+				fopen_s(&oFile, name.c_str(), "wb");
+				fwrite(fileBuffer, entry.fileSize, 1, oFile);
+				fclose(oFile);
+				delete[] fileBuffer;
+			}
+
+			std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/wem";
+			std::filesystem::create_directories(outputPath);
 			int currentBlockID = entry.startingBlock;
 			int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 			int lastBlockID = currentBlockID + blockCount;
@@ -250,7 +328,69 @@ void Package::extractFiles()
 			while (currentBlockID <= lastBlockID)
 			{
 				Block currentBlock = blocks[currentBlockID];
+				FILE* pFile;
+				fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
+				fseek(pFile, currentBlock.offset, SEEK_SET);
+				unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+				size_t result;
+				result = fread(blockBuffer, 1, currentBlock.size, pFile);
+				if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
 
+				unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
+				unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
+
+				if (currentBlock.bitFlag & 0x2)
+					decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+				else
+					decryptBuffer = blockBuffer;
+
+				if (currentBlock.bitFlag & 0x1)
+					decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+				else
+					decompBuffer = decryptBuffer;
+
+				if (currentBlockID == entry.startingBlock)
+				{
+					size_t cpySize;
+					if (currentBlockID == lastBlockID)
+						cpySize = entry.fileSize;
+					else
+						cpySize = BLOCK_SIZE - entry.startingBlockOffset;
+					memcpy(fileBuffer, decompBuffer + entry.startingBlockOffset, cpySize);
+					currentBufferOffset += cpySize;
+				}
+				else if (currentBlockID == lastBlockID)
+				{
+					memcpy(fileBuffer + currentBufferOffset, decompBuffer, entry.fileSize - currentBufferOffset);
+				}
+				else
+				{
+					memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
+					currentBufferOffset += BLOCK_SIZE;
+				}
+				fclose(pFile);
+				currentBlockID++;
+				delete[] decompBuffer;
+			}
+			FILE* oFile;
+			std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bin";
+			fopen_s(&oFile, name.c_str(), "wb");
+			fwrite(fileBuffer, entry.fileSize, 1, oFile);
+			fclose(oFile);
+			delete[] fileBuffer;
+		}
+		// Everything else
+		else {
+			std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/unknown";
+			std::filesystem::create_directories(outputPath);
+			int currentBlockID = entry.startingBlock;
+			int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
+			int lastBlockID = currentBlockID + blockCount;
+			unsigned char* fileBuffer = new unsigned char[entry.fileSize];
+			int currentBufferOffset = 0;
+			while (currentBlockID <= lastBlockID)
+			{
+				Block currentBlock = blocks[currentBlockID];
 				FILE* pFile;
 				fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
 				fseek(pFile, currentBlock.offset, SEEK_SET);
@@ -295,18 +435,26 @@ void Package::extractFiles()
 				fclose(pFile);
 				currentBlockID++;
 				delete[] decompBuffer;
+
+
 			}
-	 FILE* oFile;
-         std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".wem";
-         fopen_s(&oFile, name.c_str(), "wb");
-         fwrite(fileBuffer, entry.fileSize, 1, oFile);
-         fclose(oFile);
-         delete[] fileBuffer;
-        } 
-    }
+
+			FILE* oFile;
+			std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bin";
+			//std::string name = outputPath + "/" + nameid2 + "-" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bin";
+			fopen_s(&oFile, name.c_str(), "wb");
+			fwrite(fileBuffer, entry.fileSize, 1, oFile);
+			fclose(oFile);
+			delete[] fileBuffer;
+		}
+
+
+	}
+
 }
 
 // Bcrypt decryption implementation largely from Sir Kane's SourcePublic_v2.cpp, very mysterious
+
 void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned char*& decryptBuffer)
 {
 	BCRYPT_ALG_HANDLE hAesAlg;
@@ -346,7 +494,7 @@ void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned cha
 
 void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer)
 {
-	int64_t result = ((OodleLZ64_DecompressDef)OodleLZ_Decompress)(decryptBuffer, block.size, decompBuffer, BLOCK_SIZE, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, NULL, 3);
+	int64_t result = ((OodleLZ64_DecompressDef)OodleLZ_Decompress)(decryptBuffer, block.size, decompBuffer, 262144, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3);
 	if (result <= 0)
 		auto a = 0;
 	delete[] decryptBuffer;
@@ -354,7 +502,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"oo2core_8_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_3_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
@@ -399,14 +547,14 @@ std::string Package::getEntryReference(std::string hash)
 
 	// Getting reference
 	uint32_t entryA;
-	fseek(pkgFile, entryTableOffset + id * 16, SEEK_SET);
+	fseek(pkgFile, header.entryTableOffset + id * 16, SEEK_SET);
 	fread((char*)&entryA, 1, 4, pkgFile);
 	std::string reference = uint32ToHexStr(entryA);
 	fclose(pkgFile);
 	return reference;
 }
 
-uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
+uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 {
 	// Entry index
 	uint32_t id = hexStrToUint32(hash) % 8192;
@@ -420,7 +568,7 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
 		std::cerr << hash << std::endl << packagePath;
 		exit(1);
 	}
-	fseek(pkgFile, 0x44, SEEK_SET);
+	fseek(pkgFile, (header.entryTableOffsetTemp + header.newTableOffset + 40), SEEK_SET);
 	fread((char*)&entryTableOffset, 1, 4, pkgFile);
 
 	// Getting reference
@@ -441,11 +589,11 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 	uint32_t id = hexStrToUint32(hash) % 8192;
 
 	// Header data
-	if (header.pkgID == 0)
-	{
-		bool status = readHeader();
-		if (!status) return nullptr;
-	}
+	//if (header.pkgID == 0)
+	//{
+		//bool status = readHeader();
+		//if (!status) return nullptr;
+	//}
 
 	if (id >= header.entryTableSize) return nullptr;
 
@@ -482,6 +630,7 @@ std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath
 	std::set<std::string> pkgIDs;
 	std::unordered_map<uint64_t, uint32_t> hash64Table;
 
+	bool ginsorID; // useless, just to make package constructor happy
 	std::string path;
 	int status;
 	std::string fullPath;
@@ -507,7 +656,7 @@ std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath
 	}
 	for (auto& pkgID : pkgIDs)
 	{
-		Package pkg = Package(pkgID, packagesPath);
+		Package pkg = Package(pkgID, packagesPath, ginsorID);
 		status = fopen_s(&pkgFile, pkg.packagePath.c_str(), "rb");
 		if (status)
 		{
@@ -615,14 +764,26 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	for (uint32_t i = header.blockTableOffset + entry.startingBlock * 48; i <= header.blockTableOffset + entry.startingBlock * 48 + blockCount * 48; i += 48)
 	{
 		Block block = { 0, 0, 0, 0, 0 };
+		
 		fseek(pkgFile, i, SEEK_SET);
 		fread((char*)&block.offset, 1, 4, pkgFile);
 		fread((char*)&block.size, 1, 4, pkgFile);
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
+		fread((char*)&block.hash, 20, 1, pkgFile);
 		fread((char*)&block.gcmTag, 16, 1, pkgFile);
 		blocks.push_back(block);
+		/*
+		uint32_t blockNumber;
+		fseek(pkgFile, i, SEEK_SET);
+		for (uint32_t num = 0; num < block.size; num += 1) {
+			blockNumber = num,
+			fread((char*)&block.offset, 1, 4, pkgFile);
+			fread((char*)&block.size, 1, 4, pkgFile);
+			fread((char*)&block.patchID, 1, 2, pkgFile);
+			fread((char*)&block.bitFlag, 1, 2, pkgFile);
+		}
+		*/
 	}
 
 	unsigned char* fileBuffer = new unsigned char[entry.fileSize];
