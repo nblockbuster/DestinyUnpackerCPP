@@ -82,30 +82,77 @@ bool Package::readHeader()
 	{
 		return false;
 	}
-	fseek(pkgFile, 0x10, SEEK_SET);
+	fseek(pkgFile, 0x4, SEEK_SET);
 	fread((char*)&header.pkgID, 1, 2, pkgFile);
 
-	fseek(pkgFile, 0x30, SEEK_SET);
+	fseek(pkgFile, 0x20, SEEK_SET);
 	fread((char*)&header.patchID, 1, 2, pkgFile);
 
-	// Entry Table
-	fseek(pkgFile, 0x44, SEEK_SET);
-	fread((char*)&header.entryTableOffset, 1, 4, pkgFile);
+	fseek(pkgFile, 0x1A, SEEK_SET);
+	fread((char*)&header.newFlag, 1, 2, pkgFile);
 
-	fseek(pkgFile, 0x60, SEEK_SET);
-	fread((char*)&header.entryTableSize, 1, 4, pkgFile);
+	fseek(pkgFile, 0x110, SEEK_SET);
+	fread((char*)&header.newTableOffset, 1, 4, pkgFile);
 
-	// Block Table
+	std::cout << "New Package Flag: " + std::to_string(header.newFlag) << std::endl;
 
-	fseek(pkgFile, 0x68, SEEK_SET);
-	fread((char*)&header.blockTableSize, 1, 4, pkgFile);
-	fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
+	if (header.newFlag != 1)
+	{
+		//old package header structure, should work, not 1000% sure
+		fseek(pkgFile, 180, SEEK_SET);
+		std::cout << "Old Package Structure" << std::endl;
+		fseek(pkgFile, 0xB4, SEEK_SET);
+		fread((char*)&header.entryTableSize, 1, 4, pkgFile);	
+		std::cout << "Entry Table Size/Count: " + std::to_string(header.entryTableSize) << std::endl;
+		fread((char*)&header.entryTableOffset, 1, 4, pkgFile);
+		std::cout << "Entry Table Offset: " + std::to_string(header.entryTableOffset) << std::endl;
+		//char entryTableHash[14];
+		//fseek(pkgFile, 188, SEEK_SET);
+		//fread((char*)&entryTableHash, 1, 14, pkgFile);
+		//std::cout << "Entry Table Hash: " + std::to_string(header.entryTableHash) << std::endl;
+		fseek(pkgFile, 0xD0, SEEK_SET);
+		fread((char*)&header.blockTableSize, 1, 4, pkgFile);
+		std::cout << "Block Table Size/Count: " + std::to_string(header.blockTableSize) << std::endl;
+		fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
+		std::cout << "Block Table Offset: " + std::to_string(header.blockTableOffset) << std::endl;
+		
+	}
+	else {
+		//new package structure
+		std::cout << "New Package Structure" << std::endl;
+		std::cout << "Table offset to make sure: " + std::to_string(header.newTableOffset) << std::endl;
 
-	// Hash64 Table
+		fseek(pkgFile, (header.newTableOffset + 0x18), SEEK_SET);
+		fread((char*)&header.entryTableOffsetTemp, 1, 4, pkgFile);
+
+		header.entryTableOffset = (header.entryTableOffsetTemp + header.newTableOffset + 40);
+
+		fseek(pkgFile, 0xB4, SEEK_SET);
+		fread((char*)&header.entryTableSize, 1, 4, pkgFile);
+
+		std::cout << "Entry Table Offset: " + std::to_string(header.entryTableOffset) << std::endl;
+		std::cout << "Entry Table Size: " + std::to_string(header.entryTableSize) << std::endl;
+
+		fseek(pkgFile, (header.newTableOffset + 0x28), SEEK_SET);
+		fread((char*)&header.blockTableOffsetTemp, 1, 4, pkgFile);
+
+		header.blockTableOffset = (header.blockTableOffsetTemp + header.newTableOffset + 0x38);
+		std::cout << "Block Table Offset: " + std::to_string(header.blockTableOffset) << std::endl;
+		fseek(pkgFile, 0xD0, SEEK_SET);
+		fread((char*)&header.blockTableSize, 1, 2, pkgFile);
+		std::cout << "Block Table Size: " + std::to_string(header.blockTableSize) << std::endl << std::endl;
+		
+
+	}
+	
+
+	// Hash64 Table, not sure if needed or not but left out to cut down on issues, if any
+	/*
 	fseek(pkgFile, 0xB8, SEEK_SET);
 	fread((char*)&header.hash64TableSize, 1, 4, pkgFile);
 	fread((char*)&header.hash64TableOffset, 1, 4, pkgFile);
 	header.hash64TableOffset += 64; // relative offset
+	*/
 	return true;
 }
 
@@ -146,13 +193,13 @@ void Package::getBlockTable()
 {
 	for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 48; i += 48)
 	{
-		Block block = { 0, 0, 0, 0, 0 };
+		Block block = { 0, 0, 0, 0, 0, 0 };
 		fseek(pkgFile, i, SEEK_SET);
 		fread((char*)&block.offset, 1, 4, pkgFile);
 		fread((char*)&block.size, 1, 4, pkgFile);
 		fread((char*)&block.patchID, 1, 2, pkgFile);
 		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
+		fread((char*)&block.hash, 20, 1, pkgFile);
 		fread((char*)&block.gcmTag, 16, 1, pkgFile);
 		blocks.push_back(block);
 	}
@@ -161,8 +208,9 @@ void Package::getBlockTable()
 void Package::modifyNonce()
 {
 	// Nonce
-	nonce[0] ^= (header.pkgID >> 8) & 0xFF;
-	nonce[11] ^= header.pkgID & 0xFF;
+	nonce[0] ^= (header.pkgID >> 8) & 255;
+	nonce[1] ^= 38;
+	nonce[11] ^= header.pkgID & 255;
 }
 
 void Package::extractFiles()
@@ -170,6 +218,7 @@ void Package::extractFiles()
 	std::vector<std::string> pkgPatchStreamPaths;
 	std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
 	std::filesystem::create_directories(outputPath);
+	
 	// Initialising the required file streams
 	for (int i = 0; i <= header.patchID; i++)
 	{
@@ -178,10 +227,19 @@ void Package::extractFiles()
 		pkgPatchStreamPaths.push_back(pkgPatchPath);
 		std::cout << pkgPatchPath << "\n";
 	}
+	
 	// Extracting each entry to a file
 	for (int i = 0; i < entries.size(); i++)
 	{
 		Entry entry = entries[i];
+		//wems
+
+		//bl swapped wem & bnk subtype it seems? wem is 26/6 , but 26/7 in bl
+
+		//no, changed num/subnumtype of bnks...
+
+		//they did! bnks are 25/5 instead of 25/6!
+
 		if ((entry.numType == 26) && (entry.numSubType == 7))
 		{
 			int currentBlockID = entry.startingBlock;
@@ -238,15 +296,13 @@ void Package::extractFiles()
 				currentBlockID++;
 				delete[] decompBuffer;
 			}
-
-			FILE* oFile;
-            std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".wem";
-            fopen_s(&oFile, name.c_str(), "wb");
-            fwrite(fileBuffer, entry.fileSize, 1, oFile);
-            fclose(oFile);
-            delete[] fileBuffer;
-        }
-        
+	 FILE* oFile;
+         std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".wem";
+         fopen_s(&oFile, name.c_str(), "wb");
+         fwrite(fileBuffer, entry.fileSize, 1, oFile);
+         fclose(oFile);
+         delete[] fileBuffer;
+        } 
     }
 }
 
