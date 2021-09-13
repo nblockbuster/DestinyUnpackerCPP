@@ -22,10 +22,16 @@ struct PkgHeader
 {
 	uint16_t pkgID;
 	uint16_t patchID;
+	uint16_t newFlag;
+	uint32_t newTableOffset;
 	uint32_t entryTableOffset;
+	uint32_t entryTableOffsetTemp;
+	char entryTableHash;
 	uint32_t entryTableSize;
 	uint32_t blockTableOffset;
-	uint32_t blockTableSize;
+	uint32_t blockTableOffsetTemp;
+	uint16_t blockTableSize;
+	char blockTableHash;
 	uint32_t hash64TableOffset;
 	uint32_t hash64TableSize;
 };
