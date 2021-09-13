@@ -38,6 +38,7 @@ struct Entry
 	uint32_t startingBlock;
 	uint32_t startingBlockOffset;
 	uint32_t fileSize;
+	uint32_t blockCount;
 };
 
 struct Block
@@ -47,6 +48,7 @@ struct Block
 	uint32_t size;
 	uint16_t patchID;
 	uint16_t bitFlag;
+	uint8_t hash[20];
 	uint8_t gcmTag[16];
 };
 
@@ -61,7 +63,7 @@ class Package
 private:
 	unsigned char nonce[12] =
 	{
-		0x84, 0xEA, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
+		0x84, 0xDF, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
 	};
 	const std::string CUSTOM_DIR = "output";
 
