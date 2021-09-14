@@ -21,6 +21,7 @@ static void show_usage()
 int main(int argc, char** argv)
 {
 	Sarge sarge;
+	sarge.setArgument("i", "pkgsIds", "pkgs id", true);
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
 	sarge.setArgument("w", "wavconv", "wav conv", false);
 	sarge.setArgument("g", "hexid", "hex id", false);
