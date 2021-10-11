@@ -5,7 +5,7 @@ Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
 
 Valid for all Destiny 2: Shadowkeep packages from version 2.6.0.1 onward.
 
-Untested for any packages from Forsaken and earlier.
+Tested and works with any packages with a build date of 7/13/2017 at 12:29:40 PM (Beta packages I believe, need to modify encryption keys for the encryption)
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
