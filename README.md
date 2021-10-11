@@ -3,7 +3,7 @@
 # Destiny 2 Unpacker
 Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
 
-Valid for all Destiny 2: Shadowkeep packages from version 2.6.0.1 onward.
+Valid for all Destiny 2 Day 1 packages from version 1.0.(1? 0?) onward.
 
 Tested and works with any packages with a build date of 7/13/2017 at 12:29:40 PM (Beta packages I believe, need to modify encryption keys for the encryption)
 
