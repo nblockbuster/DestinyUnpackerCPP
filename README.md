@@ -3,9 +3,9 @@
 # Destiny 2 Unpacker
 Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
 
-Valid for all Destiny 2 Day 1 packages from version 1.0.(1? 0?) onward.
+Valid for all Destiny 2 packages from version 1.0.0 up to verion 3.0.0.0.
 
-Tested and works with any packages with a build date of 7/13/2017 at 12:29:40 PM (Beta packages I believe, need to modify encryption keys for the encryption)
+Tested and works with any packages with a build date of 7/13/2017 to 8/25/2020 (Release packages to last update before Beyond Light)
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
