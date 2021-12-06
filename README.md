@@ -1,4 +1,4 @@
-## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/1.1.1)
+## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/v1.2)
 
 # Destiny 2 Unpacker
 Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
