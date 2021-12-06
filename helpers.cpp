@@ -20,6 +20,11 @@ std::string uint32ToHexStr(uint32_t num)
 	return hexStr;
 }
 
+uint32_t hexStrToUint16(std::string hash)
+{
+	return swapUInt16Endianness(std::stoul(hash, nullptr, 16));
+}
+
 uint32_t hexStrToUint32(std::string hash)
 {
 	return swapUInt32Endianness(std::stoul(hash, nullptr, 16));
@@ -56,4 +61,29 @@ uint64_t swapUInt64Endianness(uint64_t k)
 		((k & 0x00FF000000000000) >> 40) |
 		(k >> 56)
 		);
+}
+
+std::string getFileFromHash(std::string hsh)
+{
+	uint32_t first_int = hexStrToUint32(hsh);
+	//std::cout << std::to_string(first_int) << std::endl;
+	uint32_t one = first_int - 2155872256;
+	std::string first_hex = uint16ToHexStr(floor(one / 8192));
+	std::string second_hex = uint16ToHexStr(first_int % 8192);
+	//std::cout << first_hex + "-" + second_hex << std::endl;
+	return(first_hex + "-" + second_hex);
+}
+
+std::string getHashFromFile(std::string pkgn, std::string i)
+{
+	std::string pkg = boost::to_upper_copy(pkgn);
+	uint16_t firsthex_int;
+	uint16_t secondhex_int;
+	uint32_t one;
+	std::string two;
+	firsthex_int = swapUInt16Endianness(hexStrToUint16(pkg)); //firsthex is the package id, converted to uint16, then flip endianness (weird shit with endianness, blame c++ and probably myself)
+	secondhex_int = swapUInt16Endianness(hexStrToUint16(i)); //secondhex is the number that just counts up, conv to uint16, flip endianness
+	one = firsthex_int * 8192;
+	two = uint32ToHexStr(one + secondhex_int + 2155872256); // two is full hash
+	return two;
 }
