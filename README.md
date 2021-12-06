@@ -7,7 +7,7 @@ Valid for all Destiny 2: Beyond Light packages from version 3.0.0.0 onward.
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
-Requires Sarge to build for command line args
+Requires Sarge & Boost to build
 
 -----
 
