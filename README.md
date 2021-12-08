@@ -11,7 +11,7 @@ Requires Sarge & Boost to build
 
 -----
 
-Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts to wav)`
+Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts audio to wav) -o (converts audio to ogg) -t (generates a foobar2000 & vgmstream compatible .txtp file for playing full tracks)`
 
 (Package ID here refers to 02f6 or 0144 for example)
 
