@@ -7,11 +7,13 @@ Valid for all Destiny 2: Beyond Light packages from version 3.0.0.0 onward.
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
-Requires Sarge & Boost to build
+Requires Sarge, Boost & ww2ogg to build.
+
+(May trigger a virus warning, because I use the Vorbis exe instead of the library, [here's the virustotal link.](https://www.virustotal.com/gui/file/1e0dbe4056a26ac53924d671f3360b1a328291c059dccf5c67cab73dd7f3b84a) 
 
 -----
 
-Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts audio to wav) -o (converts audio to ogg) -t (generates a foobar2000 & vgmstream compatible .txtp file for playing full tracks)`
+Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts audio to wav) -o (converts audio to ogg) -t (generates a foobar2000 & vgmstream compatible .txtp file for playing full tracks) -h (outputs wem/wavs/oggs in hex`
 
 (Package ID here refers to 02f6 or 0144 for example)
 
