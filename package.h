@@ -13,6 +13,8 @@
 #include <set>
 #include "helpers.h"
 #include <unordered_map>
+#include <wwriff.h>
+#include <boost/algorithm/string.hpp>
 
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
 std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
@@ -87,16 +89,20 @@ private:
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 
 public:
-	std::string packagesPath = "D:/Program Files (x86)/Steam/steamapps/common/Destiny 2/packages/";
+	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
-	bool hexID;
-	bool hexid2;
+
+	bool hexid;
+	bool wavconv;
+	bool oggconv;
+	bool txtpgen;
+
 	PkgHeader header;
 	std::vector<Entry> entries;
 
 	// Constructor
-	Package(std::string packageID, std::string pkgsPath, bool hexID);
+	Package(std::string packageID, std::string pkgsPath);
 
 	bool initOodle();
 	void modifyNonce();

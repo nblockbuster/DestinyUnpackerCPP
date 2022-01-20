@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <fstream>
 #include <stdint.h>
-#include <sarge.cpp>
+#include "D:/DestinyUnpackerCPP/Sarge/src/sarge.cpp"
 #include <stdio.h>
 
 namespace fs = std::filesystem;
@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 
 static void show_usage()
 {
-	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -w (Exports as normal RIFF WAVE, auto-purges wems after conversion) -g (Extracts wems with wise id as hex) -d (deletes wems)"//-o Convert wems to ogg
+	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id]\n-w (Exports as normal RIFF WAVE, auto-purges wems after conversion)\n-g (Extracts wems with wise id as hex) -o (Convert wems to ogg) -t (Generates VGMStream txtp files)"
 		<< std::endl;
 }
 
@@ -23,9 +23,10 @@ int main(int argc, char** argv)
 	Sarge sarge;
 	sarge.setArgument("i", "pkgsIds", "pkgs id", true);
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
-	sarge.setArgument("w", "wavconv", "wav conv", false);
-	sarge.setArgument("g", "hexid", "hex id", false);
-	sarge.setArgument("d", "deletewems", "delete wems", false);
+	sarge.setArgument("w", "wavconv", "wav conversion", false);
+	sarge.setArgument("o", "oggconv", "ogg conversion", false);
+	sarge.setArgument("h", "hexid", "hex id", false);
+	sarge.setArgument("t", "txtpgen", "generate vgmstream txtps", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified to export .WEM and .WAV files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 	if (!sarge.parseArguments(argc, argv))
@@ -56,63 +57,15 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	bool hexID = false;
-	hexID = sarge.exists("hexid");
+	Package Pkg(pkgId, packagesPath);
 
-	Package Pkg(pkgId, packagesPath, hexID);
+	Pkg.hexid = sarge.exists("hexid");
+	Pkg.wavconv = sarge.exists("wavconv");
+	Pkg.oggconv = sarge.exists("oggconv");
+	Pkg.txtpgen = sarge.exists("txtpgen");
+
 	Pkg.Unpack();
 
-
-
-	std::string outputPath = "output" + pkgId + "/wem/";
-	std::string outPath2 = "output" + pkgId + "\\wem\\";
-	std::string wempath;
-	std::string wempath2;
-	std::string cmdstr;
-
-	if (sarge.exists("wavconv")) {
-		fs::directory_iterator end_itr;
-		for (const auto& entry : fs::directory_iterator(outputPath)) {
-			std::wstring dwide = entry.path();
-			std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath2), [](wchar_t c) {
-				return (char)c; });
-			wempath2.insert(0, "\"");
-			wempath2.append("\"");
-			fs::path path(wempath2);
-			if (entry.path().extension() == ".wem")
-			{
-				std::wstring dwide = entry.path();
-				std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath), [](wchar_t c) {
-					return (char)c; });
-				wempath.insert(0, "\"");
-				wempath.append("\"");
-				cmdstr = std::string("res\\vgmstream\\test.exe") + std::string(" ") + wempath;
-				std::cout << "Converting..." << std::endl;
-				system(cmdstr.c_str());
-				std::cout << "Converted " + wempath << std::endl;
-				wempath.clear();
-				cmdstr.clear();
-			}
-		}
-		std::string delWemPaths = "cmd.exe del " + outPath2 + "*.wem";
-		system(delWemPaths.c_str());
-		std::cout << "Purged .WEMS leftover from conversion";
-	}
-
-	if (sarge.exists("deletewems")) {
-		for (const auto& entry : fs::directory_iterator(outputPath)) {
-			std::wstring dwide = entry.path();
-			std::transform(dwide.begin(), dwide.end(), std::back_inserter(wempath), [](wchar_t c) {
-				return (char)c; });
-			wempath.insert(0, "\"");
-			wempath.append("\"");
-			std::string delWemPaths = "del " + outPath2 + "*.wem";
-			system(delWemPaths.c_str());
-			wempath.clear();
-			delWemPaths.clear();
-		}
-
-	}
 	return 0;
 }
 
