@@ -14,7 +14,8 @@ const int BLOCK_SIZE = 0x40000;
 
 Package::Package(std::string packageID, std::string pkgsPath)
 {
-	if (!std::filesystem::exists(packagesPath))
+	packagesPath = pkgsPath;
+	if (!std::filesystem::exists(pkgsPath))
 	{
 		printf("Package path given is invalid!");
 		exit(1);
@@ -83,33 +84,19 @@ bool Package::readHeader()
 	}
 	fseek(pkgFile, 0x10, SEEK_SET);
 	fread((char*)&header.pkgID, 1, 2, pkgFile);
-
-	//std::cout << "pkgID: " + std::to_string(header.pkgID) << std::endl;
-
 	fseek(pkgFile, 0x30, SEEK_SET);
 	fread((char*)&header.patchID, 1, 2, pkgFile);
-
-	//std::cout << "patchID: " + std::to_string(header.patchID) << std::endl;
 
 	// Entry Table
 	fseek(pkgFile, 0x44, SEEK_SET);
 	fread((char*)&header.entryTableOffset, 1, 4, pkgFile);
-
-	//std::cout << "entryTableOffest: " + std::to_string(header.entryTableOffset) << std::endl;
-
 	fseek(pkgFile, 0x60, SEEK_SET);
 	fread((char*)&header.entryTableSize, 1, 4, pkgFile);
 
-	//std::cout << "entryTableSize: " + std::to_string(header.entryTableSize) << std::endl;
-
 	// Block Table
-
 	fseek(pkgFile, 0x68, SEEK_SET);
 	fread((char*)&header.blockTableSize, 1, 4, pkgFile);
 	fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
-
-	//std::cout << "blockTableSize: " + std::to_string(header.blockTableSize) << std::endl;
-	//std::cout << "blockTableOffset: " + std::to_string(header.blockTableOffset) << std::endl;
 
 	// Hash64 Table
 	fseek(pkgFile, 0xB8, SEEK_SET);
@@ -117,21 +104,6 @@ bool Package::readHeader()
 	fread((char*)&header.hash64TableOffset, 1, 4, pkgFile);
 	header.hash64TableOffset += 64; // relative offset
 	return true;
-}
-uint32_t entryA;
-
-
-
-void WriteLogFile(const char* szString)
-{
-	//#IFDEF DEBUG
-
-	FILE* p2File;
-	fopen_s(&p2File, "logFile.txt", "a");
-	fprintf(p2File, "%s\n", szString);
-	fclose(p2File);
-
-	//#ENDIF
 }
 
 void Package::getEntryTable()
@@ -141,6 +113,7 @@ void Package::getEntryTable()
 		Entry entry;
 
 		// EntryA
+		uint32_t entryA;
 		fseek(pkgFile, i, SEEK_SET);
 		fread((char*)&entryA, 1, 4, pkgFile);
 		entry.reference = uint32ToHexStr(entryA);
@@ -164,18 +137,7 @@ void Package::getEntryTable()
 		entry.fileSize = (entryD & 0x3FFFFFF) << 4 | (entryC >> 28) & 0xF;
 
 		entries.push_back(entry);
-
-
 	}
-}
-
-void filePutContents2(const std::string& name, const std::string& content, bool append = false) {
-	std::ofstream outfile;
-	if (append)
-		outfile.open(name, std::ios_base::app);
-	else
-		outfile.open(name);
-	outfile << content;
 }
 
 void Package::getBlockTable()
@@ -221,12 +183,13 @@ void Package::extractFiles()
 	{
 		Entry entry = entries[i];
 		std::string Hambit = boost::to_upper_copy(entry.reference);
-		std::string nf = boost::to_upper_copy(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)));
 		std::string nameID = entry.reference2;
 		if ((entry.numType == 26) && (entry.numSubType == 7))
 		{
-			std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/wem";		
-			std::filesystem::create_directories(outputPath);
+			std::string out = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
+			std::string outputPath = out + "/wem";
+			std::string outputPath2 = out + "/wav";
+			std::string outputPath3 = out + "/ogg";
 			int currentBlockID = entry.startingBlock;
 			int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 			if (entry.fileSize == 0) blockCount = 0; // Stupid check for weird C++ floor behaviour
@@ -278,51 +241,49 @@ void Package::extractFiles()
 			}
 			if (hexid) {
 				if (wavconv)
-				{
-					std::string outputPath2 = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/wav";
+				{				
 					std::filesystem::create_directories(outputPath2);
 					FILE* oFile;
-					std::string name = outputPath + "/" + Hambit + ".wem";
+					std::string name = out + "/temp.wem";
 					fopen_s(&oFile, name.c_str(), "wb");
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
+					HMODULE tiger_lib = LoadLibrary(L"res\\tiger_wem\\tiger_wem.dll");
+					typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
+					FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
+					ConvertWem(fileBuffer, entry.fileSize, outputPath2.c_str(), Hambit.c_str());
 					delete[] fileBuffer;
-					std::string cmdstr = "res\\vgmstream\\test.exe " + name;
-					system(cmdstr.c_str());
-					cmdstr.clear();
-					std::string outname = outputPath + "/" + Hambit + ".wem.wav";
-					std::filesystem::remove("\"" + name + "\"");
-					std::filesystem::copy(outputPath + "/" + Hambit + ".wem.wav", outputPath2 + "/" + Hambit + ".wav");
-					std::filesystem::remove(outname);
-					outname.clear();	
+					std::filesystem::path wem(name.c_str());
+					std::filesystem::remove(wem);
 				}
 				else if (oggconv)
 				{
-					std::string outputPath3 = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/ogg";
 					std::filesystem::create_directories(outputPath3);
+					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
 					std::string name = outputPath + "/" + Hambit + ".wem";
 					fopen_s(&oFile, name.c_str(), "wb");
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
 					delete[] fileBuffer;
-
 					std::string oggout = outputPath3 + "/" + Hambit + ".ogg";
 					std::string codebooks_filename = "res\\ww2ogg\\packed_codebooks_aoTuV_603.bin";
 					bool inline_codebooks = false;
 					bool full_setup = false;
 					ForcePacketFormat force_packet_format = kNoForcePacketFormat;
 					Wwise_RIFF_Vorbis ww(name, codebooks_filename, inline_codebooks, full_setup, force_packet_format);
-					//ww.print_info();
 					ofstream ofp(oggout.c_str(), std::ios::binary);
 					if (!ofp) throw File_open_error(oggout);
 					ww.generate_ogg(ofp);
 					ofp.close();
-					std::string revorbcmd = "res\\revorb\\revorb.exe " + oggout;
+					std::string revorbcmd = "res\\revorb\\ReVorb.exe " + oggout;
 					system(revorbcmd.c_str());
+					std::filesystem::path wem(name.c_str());
+					std::filesystem::remove(wem);
 				}
 				else
 				{
+					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
 					std::string name = outputPath + "/" + Hambit + ".wem";
 					fopen_s(&oFile, name.c_str(), "wb");
@@ -334,32 +295,25 @@ void Package::extractFiles()
 			else {
 				if (wavconv)
 				{
-					std::string outputPath2 = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/wav";
 					std::filesystem::create_directories(outputPath2);
 					FILE* oFile;
-					std::string name = outputPath + "/" + nameID + ".wem";
+					std::string name = out + "/temp.wem";
 					fopen_s(&oFile, name.c_str(), "wb");
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
+					HMODULE tiger_lib = LoadLibrary(L"tiger_wem.dll");
+					typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
+					FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
+					ConvertWem(fileBuffer, entry.fileSize, outputPath2.c_str(), nameID.c_str());
 					delete[] fileBuffer;
-					std::string cmdstr = "res\\vgmstream\\test.exe " + name;
-					system(cmdstr.c_str());
-					std::cout << "Converted " + name << std::endl;
-					cmdstr.clear();
-					std::string outname = outputPath + "/" + nameID + ".wem.wav";
-					std::string wavout = outputPath2 + "/" + nameID + ".wav";
-					std::filesystem::remove("\"" + name + "\"");
-					std::filesystem::copy(outname, wavout);
-					std::filesystem::remove(outname);
-					outname.clear();
-
+					std::filesystem::path wem(name.c_str());
+					std::filesystem::remove(wem);
 				}
 				else if (oggconv)
 				{
-					std::string outputPath3 = CUSTOM_DIR + uint16ToHexStr(header.pkgID) + "/ogg";
 					std::filesystem::create_directories(outputPath3);
 					FILE* oFile;
-					std::string name = outputPath + "/" + nameID + ".wem";
+					std::string name = out + "/" + Hambit + ".wem";
 					fopen_s(&oFile, name.c_str(), "wb");
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
@@ -370,15 +324,17 @@ void Package::extractFiles()
 					bool full_setup = false;
 					ForcePacketFormat force_packet_format = kNoForcePacketFormat;
 					Wwise_RIFF_Vorbis ww(name, codebooks_filename, inline_codebooks, full_setup, force_packet_format);
-					//ww.print_info();
 					ofstream ofp(oggout.c_str(), std::ios::binary);
 					if (!ofp) throw File_open_error(oggout);
 					ww.generate_ogg(ofp);
 					ofp.close();
-					std::string revorbcmd = "res\\revorb\\revorb.exe \"" + oggout;
+					std::string revorbcmd = "res\\revorb\\ReVorb.exe \"" + oggout;
 					system(revorbcmd.c_str());
+					std::filesystem::path wem(name.c_str());
+					std::filesystem::remove(wem);
 				}
 				else {
+					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
 					std::string name = outputPath + "/" + nameID + ".wem";
 					fopen_s(&oFile, name.c_str(), "wb");
@@ -450,7 +406,6 @@ void Package::extractFiles()
 			if (txtpgen)
 			{
 				std::string wwiserstr = ("py res\\wwiser\\wwiser.pyz " + name + " -g");
-				//std::cout << "wwiser string: " + wwiserstr << std::endl;
 				system(wwiserstr.c_str());
 				std::cout << "Converted " + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk to txtp" << std::endl;
 				wwiserstr.clear();

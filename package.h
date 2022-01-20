@@ -1,5 +1,6 @@
 #pragma once
 #pragma comment(lib, "bcrypt.lib")
+#pragma comment(lib, "tiger_wem.lib")
 #include <string>
 #include <vector>
 #include <array>
@@ -13,6 +14,8 @@
 #include <set>
 #include "helpers.h"
 #include <unordered_map>
+#include <wwriff.h>
+#include <boost/algorithm/string.hpp>
 
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
 std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
@@ -33,6 +36,7 @@ struct PkgHeader
 struct Entry
 {
 	std::string reference;
+	std::string reference2;
 	uint8_t numType;
 	uint8_t numSubType;
 	uint32_t startingBlock;
@@ -78,11 +82,16 @@ private:
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 
 public:
-	std::string packagesPath = "I:/SteamLibrary/steamapps/common/Destiny 2/packages/";
+	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
 	PkgHeader header;
 	std::vector<Entry> entries;
+
+	bool txtpgen;
+	bool hexid;
+	bool wavconv;
+	bool oggconv;
 
 	// Constructor
 	Package(std::string packageID, std::string pkgsPath);

@@ -8,8 +8,6 @@
 #include "Sarge/src/sarge.cpp"
 #include <stdio.h>
 
-namespace fs = std::filesystem;
-
 // Using Sarge to parse command line args: https://mayaposch.wordpress.com/2019/03/17/parsing-command-line-arguments-in-c/
 // Also requires the Boost library for easiest way of capitalizing a hash
 
@@ -51,7 +49,8 @@ int main(int argc, char** argv)
 		show_usage();
 		return 1;
 	}
-	else if (!fs::exists(packagesPath))
+
+	if (!std::filesystem::exists(packagesPath))
 	{
 		std::cerr << "Packages path does not exist. Check they exist and try again.\n";
 		show_usage();
