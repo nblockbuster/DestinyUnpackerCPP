@@ -1,4 +1,4 @@
-## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/s1.0)
+## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/1.3-PreBL)
 
 # Destiny 2 Unpacker
 Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
@@ -13,7 +13,10 @@ Requires Sarge to build for command line args
 
 -----
 
-Usage: `DestinyUnpackerCPP-Shadowkeep.exe -p "path to packages" -i input package id -w (Converts to WAV & also deletes wems when done) -g (Extracts wems with wwise id in hex)`
+Usage: `DestinyUnpackerCPP-PreBL.exe -p "path to packages" -i input package id 
+-w (converts audio to wav) -o (converts audio to ogg) 
+-t (generates a foobar2000 & vgmstream compatible .txtp file for playing full tracks) 
+-h (outputs wem/wavs/oggs in hex`
 
 (Package ID here refers to 023d or 0242 for example)
 
@@ -29,7 +32,9 @@ Obvious thanks to Mont for making his code public
 
 Thanks to Philip for helping me to fix a bug that wouldnt allow it to extract files
 
-Thanks to HighRTT for getting me the Shadowkeep and Forsaken package structure
+Thanks to HighRTT for helping me with the Shadowkeep and Forsaken package structure, and making the .wem to .wav conversion library
+
+-----
 
 ## Licensing
 
