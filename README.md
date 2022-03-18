@@ -1,4 +1,4 @@
-## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/1.3)
+## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/latest)
 
 # Destiny 2 Unpacker
 
