@@ -19,7 +19,6 @@ Requires [Sarge](https://github.com/MayaPosch/Sarge) & [Boost](https://www.boost
  · For example, using the unpacker with Pre-BL packages, one might enter: `DestinyUnpackerCPP.exe -p "D:/Shadowkeep/packages" -i 0242 -v prebl`
 
 -p "path" - follow this with the filepath of the packages folder within your Destiny 2 install directory.  
-Be sure to replace backslashes \ with forward slashes / . For example \steamapps\common\Destiny 2\packages becomes /steamapps/common/Destiny 2/packages in cmd.
 
 -i "input" - follow this with the package you want to unpack.  
 Being more or less specific packages changes what is unpacked. For example 02f6_4 will unpack one package where 02f6 will unpack packages "02f6_3", "02f6_4" and "02f6_5".
