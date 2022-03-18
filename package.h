@@ -14,7 +14,7 @@
 #include <set>
 #include "helpers.h"
 #include <unordered_map>
-#include <wwriff.h>
+//#include <wwriff.h>
 #include <boost/algorithm/string.hpp>
 
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
@@ -67,6 +67,12 @@ private:
 	{
 		0x84, 0xEA, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
 	};
+
+	unsigned char preblnonce[12] =
+	{
+		0x84, 0xDF, 0x11, 0xC0, 0xAC, 0xAB, 0xFA, 0x20, 0x33, 0x11, 0x26, 0x99,
+	};
+
 	const std::string CUSTOM_DIR = "output";
 
 	FILE* pkgFile;
@@ -80,11 +86,17 @@ private:
 	void extractFiles();
 	void decryptBlock(Block block, unsigned char* blockBuffer, unsigned char* &decryptBuffer);
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
+	unsigned char* genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths);
 
 public:
 	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
+	std::string outPathBase;
+	std::string version;
+	bool preBL = false;
+	bool d1 = false;
+	
 	PkgHeader header;
 	std::vector<Entry> entries;
 

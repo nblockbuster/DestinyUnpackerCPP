@@ -5,6 +5,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
+#include "revorb.h"
 
 std::string uint16ToHexStr(uint16_t num);
 std::string uint32ToHexStr(uint32_t num);
@@ -16,4 +17,3 @@ uint32_t hexStrToUint32(std::string hash);
 uint64_t hexStrToUint64(std::string hash);
 std::string getFileFromHash(std::string hash);
 std::string getHashFromFile(std::string pkgn, std::string i);
-std::string load3(const std::string& path);

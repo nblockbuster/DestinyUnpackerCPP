@@ -13,7 +13,11 @@
 
 static void show_usage()
 {
-	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -w (Exports as normal RIFF WAVE) -o (Converts wems to ogg) -h (outputs wem ids in hex) -t (generates foobar usable .txtps)"
+	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -o [output path] -v [version] -w -h -t\n"
+		<< "-w converts wem audio to standard wav\n"
+		<< "-h names the audio with hexadecimal, to make it easier to read\n"
+		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
+		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)"
 		<< std::endl;
 }
 
@@ -23,11 +27,13 @@ int main(int argc, char** argv)
 
 	sarge.setArgument("i", "pkgsIds", "pkgs id", true);
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
+	sarge.setArgument("o", "outpath", "output path", true);
+	sarge.setArgument("v", "version", "pkg version", true);
 	sarge.setArgument("w", "wavconv", "wav conv", false);
-	sarge.setArgument("o", "oggconv", "ogg conv", false);
+	sarge.setArgument("g", "oggconv", "ogg conv", false);
 	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("h", "hexid", "hex id", false);
-	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified to export wems and txtp files by nblock with help from Philip and HighRTT.");
+	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
 	if (!sarge.parseArguments(argc, argv))
@@ -36,12 +42,12 @@ int main(int argc, char** argv)
 		show_usage();
 		return 1;
 	}
-	std::string packagesPath;
-	std::string pkgId;
-
+	std::string packagesPath, pkgId, outputPath, version;
 	
 	sarge.getFlag("pkgspath", packagesPath);
 	sarge.getFlag("pkgsIds", pkgId);
+	sarge.getFlag("outpath", outputPath);
+	sarge.getFlag("version", version);
 
 	if (packagesPath == "")
 	{
@@ -57,17 +63,21 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	if (packagesPath.find('\\') != std::string::npos)
-	{
-		printf("\nBackslashes in paths detected, please change to forward slashes (/).\n");
-		return 1;
-	}
 	Package Pkg(pkgId, packagesPath);
 
 	Pkg.txtpgen = sarge.exists("txtpgen");
 	Pkg.hexid = sarge.exists("hexid");
 	Pkg.wavconv = sarge.exists("wavconv");
 	Pkg.oggconv = sarge.exists("oggconv");
+	bool d1 = false;
+	bool prebl = false;
+	if (boost::iequals(version, "d1"))
+		d1 = true;
+	else if (boost::iequals(version, "prebl"))
+		prebl = true;
+	Pkg.outPathBase = outputPath;
+	Pkg.d1 = d1;
+	Pkg.preBL = prebl;
 
 	Pkg.Unpack();
 	return 0;
