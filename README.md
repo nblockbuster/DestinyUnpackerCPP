@@ -1,33 +1,48 @@
-## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/v1.2)
+## Download from here: [Releases](https://github.com/nblockbuster/DestinyUnpackerCPP/releases/tag/1.3)
 
 # Destiny 2 Unpacker
-Put oodle dll in same directory. The oodle dll is from Destiny 2 directory.
 
-Valid for all Destiny 2: Beyond Light packages from version 3.0.0.0 onward.
+Valid for all Destiny 1 PS4 and Destiny 2 PC packages.
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
-Requires Sarge, Boost & ww2ogg to build.
+Requires [Sarge](https://github.com/MayaPosch/Sarge) & [Boost](https://www.boost.org/) to build.
 
-(May trigger a virus warning, because I use the Vorbis exe instead of the library, [here's the virustotal link.](https://www.virustotal.com/gui/file/1e0dbe4056a26ac53924d671f3360b1a328291c059dccf5c67cab73dd7f3b84a) 
+-----
+## Tutorial
+
+1\. Open a command prompt in the folder that the exe is in by typing "cmd" in the file path at the top of the folder.
+
+2\. Enter the two commands below as follows:
+
+"\[exe file name] -p \[path to packages folder] -i \[package id]"  
+ · For example, using the unpacker with Pre-BL packages, one might enter: `DestinyUnpackerCPP.exe -p "D:/Shadowkeep/packages" -i 0242 -v prebl`
+
+-p "path" - follow this with the filepath of the packages folder within your Destiny 2 install directory.  
+Be sure to replace backslashes \ with forward slashes / . For example \steamapps\common\Destiny 2\packages becomes /steamapps/common/Destiny 2/packages in cmd.
+
+-i "input" - follow this with the package you want to unpack.  
+Being more or less specific packages changes what is unpacked. For example 02f6_4 will unpack one package where 02f6 will unpack packages "02f6_3", "02f6_4" and "02f6_5".
+
+Additional optional commands:
+-w - Converts wem files to **w**av files.  
+-h - **h**exID - Generates files named with a hexID. Much easier for sorting if you know how.  
+You can combine this with other commands to generate hexID-named of a given type.  
+-t - Generates **t**xtp files from the soundbanks in that package. "The way I see it it's a file referencing the actual wems, and telling vgmstream how to play them in what order."  
+-o - Specify an output folder.  
+-v - Change which version of destiny to extract from. (Valid inputs: d1, prebl)  
 
 -----
 
-Usage: `DestinyUnpackerCPP.exe -p "path to packages" -i input package id -w (converts audio to wav) -o (converts audio to ogg) -t (generates a foobar2000 & vgmstream compatible .txtp file for playing full tracks) -h (outputs wem/wavs/oggs in hex`
+Obvious thanks to Mont for making his code public.
 
-(Package ID here refers to 02f6 or 0144 for example)
+Thanks to Philip for helping me to get it extracting .WEMs.
 
-Modified to export .WEM files by nblock, with major help from Philip & HighRTT
+Thanks to HighRTT for helping out a lot, and making the WEM to WAV converter library I use.  
 
-Default output folder is in a folder called "`output pkgid`" in the same directory as the exe. 
+Credit to OnscreenLoki for writing the tutorial.
 
 -----
-
-Obvious thanks to Mont for making his code public
-
-Thanks to Philip for helping me to get it extracting .WEMs
-
-Thanks to HighRTT for helping out a lot
 
 ## Licensing
 
