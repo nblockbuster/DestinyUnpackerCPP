@@ -282,6 +282,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
 		unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
+		unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
 		if (d1)
 		{
 			
@@ -292,7 +293,6 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		}
 		else
 		{
-			unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
 			if (currentBlock.bitFlag & 0x2)
 				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
 			else
@@ -365,6 +365,13 @@ void Package::extractFiles()
 	if (outPathBase == "")
 		outPathBase = uint16ToHexStr(header.pkgID);
 
+	if (wavconv)
+	{
+		HMODULE tiger_lib = LoadLibrary(L"tiger_wem.dll");
+		typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
+		FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
+	}
+
 	std::vector<std::string> pkgPatchStreamPaths;
 	//std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
 	//std::filesystem::create_directories(outputPath);
@@ -393,20 +400,15 @@ void Package::extractFiles()
 
 			if (hexid) {
 				if (wavconv)
-				{				
-					std::filesystem::create_directories(wavOutput);
-					HMODULE tiger_lib = LoadLibrary(L"res\\tiger_wem\\tiger_wem.dll");
-					typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
-					FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
-					ConvertWem(fileBuffer, entry.fileSize, wavOutput.c_str(), Hambit.c_str());
+				{
+					std::filesystem::create_directories(".expath_temp");
+					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
+					std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
 					delete[] fileBuffer;
-				}		
+				}
 				/*
 				else if (oggconv) 
 				{
-					//i would really like for this to work but it has caused me
-					//so much pain with error codes that i dont know how to fix.
-					//no more ogg.
 					std::filesystem::create_directories(outputPath3);
 					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
@@ -445,11 +447,9 @@ void Package::extractFiles()
 			else {
 				if (wavconv)
 				{
-					std::filesystem::create_directories(wavOutput);
-					HMODULE tiger_lib = LoadLibrary(L"res\\tiger_wem\\tiger_wem.dll");
-					typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
-					FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
-					ConvertWem(fileBuffer, entry.fileSize, wavOutput.c_str(), nameID.c_str());
+					std::filesystem::create_directories(".expath_temp");
+					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
+					std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
 					delete[] fileBuffer;
 				}
 				/*
@@ -501,6 +501,7 @@ void Package::extractFiles()
 					delete[] fileBuffer;
 				}
 			}
+			
 		}
 		else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
 		{
@@ -523,6 +524,8 @@ void Package::extractFiles()
 			}
 		}
 	}
+	if (std::filesystem::exists(".expath_temp"))
+		std::filesystem::remove_all(".expath_temp");
 }
 
 // Bcrypt decryption implementation largely from Sir Kane's SourcePublic_v2.cpp, very mysterious

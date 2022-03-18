@@ -33,6 +33,7 @@ int main(int argc, char** argv)
 	sarge.setArgument("g", "oggconv", "ogg conv", false);
 	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("h", "hexid", "hex id", false);
+	sarge.setArgument("f", "folder", "folder packages", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
@@ -62,24 +63,64 @@ int main(int argc, char** argv)
 		show_usage();
 		return 1;
 	}
+	if (sarge.exists("folder"))
+	{
+		std::string pkgidold;
+		std::filesystem::path pkgsFolder{ packagesPath };
+		std::set<std::string> existingPkgIDS;
+		std::vector<std::string> pkgf;
+		for (auto const& dir_entry : std::filesystem::directory_iterator{ pkgsFolder })
+		{
+			std::string pkgidfolder = dir_entry.path().string();
+			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
+			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
+			{
+				pkgf.push_back(pkgidfolder);
+				existingPkgIDS.insert(pkgidfolder);
+			}
+		}
+		std::vector<std::string> mdEntries;
+		for (int o = 0; o < existingPkgIDS.size(); o++)
+		{
+			Package pkg(pkgf[o], packagesPath);
+			pkg.txtpgen = sarge.exists("txtpgen");
+			pkg.hexid = sarge.exists("hexid");
+			pkg.wavconv = sarge.exists("wavconv");
+			pkg.oggconv = sarge.exists("oggconv");
+			bool d1 = false;
+			bool prebl = false;
+			if (boost::iequals(version, "d1"))
+				d1 = true;
+			else if (boost::iequals(version, "prebl"))
+				prebl = true;
+			pkg.outPathBase = outputPath;
+			pkg.d1 = d1;
+			pkg.preBL = prebl;
 
-	Package Pkg(pkgId, packagesPath);
+			pkg.Unpack();
+		}
+	}
+	else
+	{
 
-	Pkg.txtpgen = sarge.exists("txtpgen");
-	Pkg.hexid = sarge.exists("hexid");
-	Pkg.wavconv = sarge.exists("wavconv");
-	Pkg.oggconv = sarge.exists("oggconv");
-	bool d1 = false;
-	bool prebl = false;
-	if (boost::iequals(version, "d1"))
-		d1 = true;
-	else if (boost::iequals(version, "prebl"))
-		prebl = true;
-	Pkg.outPathBase = outputPath;
-	Pkg.d1 = d1;
-	Pkg.preBL = prebl;
+		Package Pkg(pkgId, packagesPath);
 
-	Pkg.Unpack();
+		Pkg.txtpgen = sarge.exists("txtpgen");
+		Pkg.hexid = sarge.exists("hexid");
+		Pkg.wavconv = sarge.exists("wavconv");
+		Pkg.oggconv = sarge.exists("oggconv");
+		bool d1 = false;
+		bool prebl = false;
+		if (boost::iequals(version, "d1"))
+			d1 = true;
+		else if (boost::iequals(version, "prebl"))
+			prebl = true;
+		Pkg.outPathBase = outputPath;
+		Pkg.d1 = d1;
+		Pkg.preBL = prebl;
+
+		Pkg.Unpack();
+	}
 	return 0;
 }
 

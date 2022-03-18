@@ -1,6 +1,7 @@
 #pragma once
 #pragma comment(lib, "bcrypt.lib")
 #pragma comment(lib, "tiger_wem.lib")
+#include "tiger_wem/tiger_wem.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -55,6 +56,8 @@ struct Block
 };
 
 typedef int64_t(*OodleLZ64_DecompressDef)(unsigned char* Buffer, int64_t BufferSize, unsigned char* OutputBuffer, int64_t OutputBufferSize, int32_t a, int32_t b, int64_t c, void* d, void* e, void* f, void* g, void* h, void* i, int32_t ThreadModule);
+
+typedef int (*ConvertWemDef)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
 
 /*
 * Handles the separation of a .pkg file into its constituent binary files.
