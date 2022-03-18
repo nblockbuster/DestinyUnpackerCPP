@@ -5,7 +5,6 @@
 #include <iostream>
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
-#include "revorb.h"
 
 std::string uint16ToHexStr(uint16_t num);
 std::string uint32ToHexStr(uint32_t num);
