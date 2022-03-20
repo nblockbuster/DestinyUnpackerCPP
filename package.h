@@ -106,7 +106,6 @@ public:
 	bool txtpgen;
 	bool hexid;
 	bool wavconv;
-	bool oggconv;
 
 	// Constructor
 	Package(std::string packageID, std::string pkgsPath);

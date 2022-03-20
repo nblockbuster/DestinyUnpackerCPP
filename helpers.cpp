@@ -76,12 +76,11 @@ std::string getFileFromHash(std::string hsh)
 
 std::string getHashFromFile(std::string pkgn, std::string i)
 {
-	std::string pkg = boost::to_upper_copy(pkgn);
 	uint16_t firsthex_int;
 	uint16_t secondhex_int;
 	uint32_t one;
 	std::string two;
-	firsthex_int = swapUInt16Endianness(hexStrToUint16(pkg)); //firsthex is the package id, converted to uint16, then flip endianness (weird shit with endianness, blame c++ and probably myself)
+	firsthex_int = swapUInt16Endianness(hexStrToUint16(pkgn)); //firsthex is the package id, converted to uint16, then flip endianness (weird shit with endianness, blame c++ and probably myself)
 	secondhex_int = swapUInt16Endianness(hexStrToUint16(i)); //secondhex is the number that just counts up, conv to uint16, flip endianness
 	one = firsthex_int * 8192;
 	two = uint32ToHexStr(one + secondhex_int + 2155872256); // two is full hash

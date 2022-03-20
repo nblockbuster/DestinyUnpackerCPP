@@ -30,7 +30,6 @@ int main(int argc, char** argv)
 	sarge.setArgument("o", "outpath", "output path", true);
 	sarge.setArgument("v", "version", "pkg version", true);
 	sarge.setArgument("w", "wavconv", "wav conv", false);
-	sarge.setArgument("g", "oggconv", "ogg conv", false);
 	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("h", "hexid", "hex id", false);
 	sarge.setArgument("f", "folder", "folder packages", false);
@@ -86,7 +85,6 @@ int main(int argc, char** argv)
 			pkg.txtpgen = sarge.exists("txtpgen");
 			pkg.hexid = sarge.exists("hexid");
 			pkg.wavconv = sarge.exists("wavconv");
-			pkg.oggconv = sarge.exists("oggconv");
 			bool d1 = false;
 			bool prebl = false;
 			if (boost::iequals(version, "d1"))
@@ -108,7 +106,6 @@ int main(int argc, char** argv)
 		Pkg.txtpgen = sarge.exists("txtpgen");
 		Pkg.hexid = sarge.exists("hexid");
 		Pkg.wavconv = sarge.exists("wavconv");
-		Pkg.oggconv = sarge.exists("oggconv");
 		bool d1 = false;
 		bool prebl = false;
 		if (boost::iequals(version, "d1"))

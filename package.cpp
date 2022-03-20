@@ -77,8 +77,8 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 bool Package::readHeader()
 {
 	// Package data
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		return false;
 	}
@@ -275,7 +275,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 	{
 		Block currentBlock = blocks[currentBlockID];
 		FILE* pFile;
-		fopen_s(&pFile, pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb");
+		pFile = _fsopen(pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb", _SH_DENYNO);
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
 		size_t result;
@@ -330,7 +330,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 
 void Package::extractFiles()
 {
-	
+
 	int wemType;
 	int wemSubType;
 	int bnkType;
@@ -372,10 +372,15 @@ void Package::extractFiles()
 		FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
 	}
 
+	std::string bnkOutputPath = outPathBase + "/bnk";
+	std::string out = outPathBase;// + uint16ToHexStr(header.pkgID);
+	std::string outputPath = out + "/wem";
+	std::string wavOutput = out + "/wav";
+
 	std::vector<std::string> pkgPatchStreamPaths;
 	//std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
 	//std::filesystem::create_directories(outputPath);
-	
+
 	// Initialising the required file streams
 	for (int i = 0; i <= header.patchID; i++)
 	{
@@ -392,53 +397,24 @@ void Package::extractFiles()
 		std::string nameID = entry.reference2;
 		if (entry.numType == wemType && entry.numSubType == wemSubType)
 		{
-			
-			std::string out = outPathBase;// + uint16ToHexStr(header.pkgID);
-			std::string outputPath = out + "/wem";
-			std::string wavOutput = out + "/wav";
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 
 			if (hexid) {
 				if (wavconv)
 				{
 					std::filesystem::create_directories(".expath_temp");
+					std::filesystem::create_directories(wavOutput);
 					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
-					std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
+					if (std::filesystem::exists(".expath_temp/" + Hambit + ".wav"))
+						std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
 					delete[] fileBuffer;
 				}
-				/*
-				else if (oggconv) 
-				{
-					std::filesystem::create_directories(outputPath3);
-					std::filesystem::create_directories(outputPath);
-					FILE* oFile;
-					std::string name = outputPath + "/" + Hambit + ".wem";
-					fopen_s(&oFile, name.c_str(), "wb");
-					fwrite(fileBuffer, entry.fileSize, 1, oFile);
-					fclose(oFile);
-					delete[] fileBuffer;
-					std::string oggout = outputPath3 + "/" + Hambit + ".ogg";
-					std::string codebooks_filename = "res\\ww2ogg\\packed_codebooks_aoTuV_603.bin";
-					bool inline_codebooks = false;
-					bool full_setup = false;
-					ForcePacketFormat force_packet_format = kNoForcePacketFormat;
-					Wwise_RIFF_Vorbis ww(name, codebooks_filename, inline_codebooks, full_setup, force_packet_format);
-					ofstream ofp(oggout.c_str(), std::ios::binary);
-					if (!ofp) throw File_open_error(oggout);
-					ww.generate_ogg(ofp);
-					ofp.close();
-					std::string revorbcmd = "res\\revorb\\ReVorb.exe " + oggout;
-					system(revorbcmd.c_str());
-					std::filesystem::path wem(name.c_str());
-					std::filesystem::remove(wem);
-				}
-				*/
 				else
 				{
 					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
 					std::string name = outputPath + "/" + Hambit + ".wem";
-					fopen_s(&oFile, name.c_str(), "wb");
+					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
 					delete[] fileBuffer;
@@ -448,81 +424,41 @@ void Package::extractFiles()
 				if (wavconv)
 				{
 					std::filesystem::create_directories(".expath_temp");
-					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
-					std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
+					std::filesystem::create_directories(wavOutput);
+					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", nameID.c_str());
+					std::filesystem::rename(".expath_temp/" + nameID + ".wav", wavOutput + "/" + nameID + ".wav");
 					delete[] fileBuffer;
 				}
-				/*
-				else if (oggconv)
-				{
-					//i would really like for this to work but it has caused me
-					//so much pain with error codes that i dont know how to fix.
-					//no more ogg.
-					std::filesystem::create_directories(outputPath3);
-					FILE* oFile;
-					std::string name = out + "/temp.wem";
-					fopen_s(&oFile, name.c_str(), "wb");
-					fwrite(fileBuffer, entry.fileSize, 1, oFile);
-					fclose(oFile);
-					delete[] fileBuffer;
-					std::string oggout = outputPath3 + "/" + nameID + ".ogg";
-					std::string codebooks_filename = "res\\ww2ogg\\packed_codebooks_aoTuV_603.bin";
-					bool inline_codebooks = false;
-					bool full_setup = false;
-					ForcePacketFormat force_packet_format = kNoForcePacketFormat;
-					Wwise_RIFF_Vorbis ww(name, codebooks_filename, inline_codebooks, full_setup, force_packet_format);
-					ofstream ofp(oggout.c_str(), std::ios::binary);
-					if (!ofp) throw File_open_error(oggout);
-					ww.generate_ogg(ofp);
-					ofp.close();
-					//std::string revorbcmd = "res\\revorb\\ReVorb.exe \"" + oggout;
-					//system(revorbcmd.c_str());
-
-					//std::stringstream indata_ss(out+"/temp.wem");
-					std::ifstream filein(oggout);
-					std::stringstream revorb_out;
-
-					//revorb(filein, revorb_out);
-						//std::cerr << "Revorb failed\n";
-					std::ofstream rvout(oggout);
-					rvout << revorb_out.str();
-					//std::filesystem::path wem(name.c_str());
-					if (std::filesystem::exists(out+"/temp.wem"))
-						remove((out+"/temp.wem").c_str());
-				}
-				*/
 				else {
 					std::filesystem::create_directories(outputPath);
 					FILE* oFile;
 					std::string name = outputPath + "/" + nameID + ".wem";
-					fopen_s(&oFile, name.c_str(), "wb");
+					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
 					delete[] fileBuffer;
 				}
 			}
-			
+
 		}
 		else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
 		{
-			std::string outputPath = outPathBase + "/bnk";
-			std::filesystem::create_directories(outputPath);
-			//std::cout << i << "\n";
+			
+			std::filesystem::create_directories(bnkOutputPath);
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			FILE* oFile;
-			std::string name = outputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
-			fopen_s(&oFile, name.c_str(), "wb");
+			std::string name = bnkOutputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
+			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
 			fclose(oFile);
 			delete[] fileBuffer;
-			if (txtpgen)
-			{
-				std::string wwiserstr = ("py res\\wwiser\\wwiser.pyz " + name + " -g");
-				system(wwiserstr.c_str());
-				std::cout << "Converted " + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk to txtp" << std::endl;
-				wwiserstr.clear();
-			}
 		}
+	}
+	if (txtpgen)
+	{
+		std::string wwiserstr = ("py res\\wwiser\\wwiser.pyz " + bnkOutputPath + "/*.bnk -g");
+		system(wwiserstr.c_str());
+		std::cout << "Converted all .bnks in " + uint16ToHexStr(header.pkgID) + " to txtp" << std::endl;
 	}
 	if (std::filesystem::exists(".expath_temp"))
 		std::filesystem::remove_all(".expath_temp");
@@ -622,11 +558,11 @@ std::string Package::getEntryReference(std::string hash)
 
 	// Entry offset
 	uint32_t entryTableOffset;
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
-		std::cerr << hash << std::endl << packagePath;
+		std::cerr << hash << " " << packagePath.c_str() << std::endl << packagePath << std::endl;
 		exit(1);
 	}
 	fseek(pkgFile, 0x44, SEEK_SET);
@@ -648,8 +584,8 @@ uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
 
 	// Entry offset
 	uint32_t entryTableOffset;
-	auto status = fopen_s(&pkgFile, packagePath.c_str(), "rb");
-	if (status != 0)
+	pkgFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+	if (pkgFile == nullptr)
 	{
 		printf("\nFailed to initialise pkg file, exiting...\n");
 		std::cerr << hash << std::endl << packagePath;
@@ -847,17 +783,43 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 
 	// Getting required block data
-	for (uint32_t i = header.blockTableOffset + entry.startingBlock * 48; i <= header.blockTableOffset + entry.startingBlock * 48 + blockCount * 48; i += 48)
+	if (d1) //d1 blocks are smaller because it doesnt need the gcmtag for decryption (which doesnt exist for d1)
 	{
-		Block block = { 0, 0, 0, 0, 0 };
-		fseek(pkgFile, i, SEEK_SET);
-		fread((char*)&block.offset, 1, 4, pkgFile);
-		fread((char*)&block.size, 1, 4, pkgFile);
-		fread((char*)&block.patchID, 1, 2, pkgFile);
-		fread((char*)&block.bitFlag, 1, 2, pkgFile);
-		fseek(pkgFile, i + 0x20, SEEK_SET);
-		fread((char*)&block.gcmTag, 16, 1, pkgFile);
-		blocks.push_back(block);
+		for (uint32_t i = header.blockTableOffset + entry.startingBlock * 0x20; i < header.blockTableOffset + entry.startingBlock * 0x20; i += 0x20)
+		{
+
+			Block block = { 0, 0, 0, 0, 0 };
+			fseek(pkgFile, i, SEEK_SET);
+			fread((char*)&block.offset, 1, 4, pkgFile);
+			fread((char*)&block.size, 1, 4, pkgFile);
+			fread((char*)&block.patchID, 1, 2, pkgFile);
+			fread((char*)&block.bitFlag, 1, 2, pkgFile);
+			fseek(pkgFile, i + 0x14, SEEK_SET); //skip the SHA-1
+			blocks.push_back(block);
+		}
+	}
+	else
+	{
+		for (uint32_t i = header.blockTableOffset + entry.startingBlock * 48; i <= header.blockTableOffset + entry.startingBlock * 48 + blockCount * 48; i += 48)
+		{
+			Block block = { 0, 0, 0, 0, 0 };
+			fseek(pkgFile, i, SEEK_SET);
+			fread((char*)&block.offset, 1, 4, pkgFile);
+			fread((char*)&block.size, 1, 4, pkgFile);
+			fread((char*)&block.patchID, 1, 2, pkgFile);
+			fread((char*)&block.bitFlag, 1, 2, pkgFile);
+			if (preBL)
+			{
+				fseek(pkgFile, 0x14, SEEK_CUR); // SHA-1 Hash
+				fread((char*)&block.gcmTag, 16, 1, pkgFile);
+			}
+			else
+			{
+				fseek(pkgFile, i + 0x20, SEEK_SET);
+				fread((char*)&block.gcmTag, 16, 1, pkgFile);
+			}
+			blocks.push_back(block);
+		}
 	}
 
 	unsigned char* fileBuffer = new unsigned char[entry.fileSize];
@@ -867,31 +829,32 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	{
 		packagePath[packagePath.size() - 5] = currentBlock.patchID + 48;
 		FILE* pFile;
-		int status = fopen_s(&pFile, packagePath.c_str(), "rb");
-		if (status)
-		{
-			std::cerr << "FAILED GETTING PACKAGE FOR BLOCK EXTRACT ERR9532";
-			exit(status);
-		}
+		pFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
 		size_t result;
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
-
-		unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
 		unsigned char* decompBuffer = new unsigned char[BLOCK_SIZE];
-
-		if (currentBlock.bitFlag & 0x2)
-			decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+		unsigned char* decryptBuffer = new unsigned char[currentBlock.size];
+		if (d1)
+		{
+			if (currentBlock.bitFlag & 0x1)
+				decompressBlock(currentBlock, blockBuffer, decompBuffer);
+			else
+				decompBuffer = blockBuffer;
+		}
 		else
-			decryptBuffer = blockBuffer;
-
-		if (currentBlock.bitFlag & 0x1)
-			decompressBlock(currentBlock, decryptBuffer, decompBuffer);
-		else
-			decompBuffer = decryptBuffer;
-
+		{
+			if (currentBlock.bitFlag & 0x2)
+				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+			else
+				decryptBuffer = blockBuffer;
+			if (currentBlock.bitFlag & 0x1)
+				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+			else
+				decompBuffer = decryptBuffer;
+		}
 		if (currentBlockID == 0)
 		{
 			size_t cpySize;
@@ -911,7 +874,6 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 			memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
 			currentBufferOffset += BLOCK_SIZE;
 		}
-
 		fclose(pFile);
 		currentBlockID++;
 		delete[] decompBuffer;
