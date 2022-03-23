@@ -1,7 +1,7 @@
 #pragma once
 #pragma comment(lib, "bcrypt.lib")
-#pragma comment(lib, "tiger_wem.lib")
-#include "tiger_wem/tiger_wem.h"
+//#pragma comment(lib, "tiger_wem.lib")
+//#include "tiger_wem/tiger_wem.h"
 #include <string>
 #include <vector>
 #include <array>
