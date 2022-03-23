@@ -598,8 +598,8 @@ bool Package::Unpack()
 	modifyNonce();
 	getEntryTable();
 	getBlockTable();
-	//fclose(pkgFile);
-	_fcloseall();
+	fclose(pkgFile);
+	//_fcloseall();
 	extractFiles();
 	return 0;
 }
