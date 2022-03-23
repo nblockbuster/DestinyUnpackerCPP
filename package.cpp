@@ -49,19 +49,30 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 		{
 			fullPath = entry.path().u8string();
 
-			auto status = fopen_s(&patchPkg, fullPath.c_str(), "rb");
-			if (status != 0)
+			patchPkg = _fsopen(fullPath.c_str(), "rb", _SH_DENYNO);
+			if (patchPkg == nullptr) exit(67);
+			if (preBL || d1)
 			{
-				printf("\nCannot open patch pkg file, exiting...");
-				exit(1);
+				fseek(patchPkg, 0x4, SEEK_SET);
+				fread((char*)&pkgID, 1, 2, patchPkg);
 			}
-			fseek(patchPkg, 0x10, SEEK_SET);
-			fread((char*)&pkgID, 1, 2, patchPkg);
-
+			else
+			{
+				fseek(patchPkg, 0x10, SEEK_SET);
+				fread((char*)&pkgID, 1, 2, patchPkg);
+			}
 			if (packageID == uint16ToHexStr(pkgID))
 			{
-				fseek(patchPkg, 0x30, SEEK_SET);
-				fread((char*)&patchID, 1, 2, patchPkg);
+				if (preBL || d1)
+				{
+					fseek(patchPkg, 0x20, SEEK_SET);
+					fread((char*)&patchID, 1, 2, patchPkg);
+				}
+				else
+				{
+					fseek(patchPkg, 0x30, SEEK_SET);
+					fread((char*)&patchID, 1, 2, patchPkg);
+				}
 				if (patchID > largestPatchID) largestPatchID = patchID;
 				std::replace(fullPath.begin(), fullPath.end(), '\\', '/');
 				packageName = fullPath.substr(0, fullPath.size() - 6);
@@ -244,7 +255,6 @@ void Package::getBlockTable()
 	}
 }
 
-
 void Package::modifyNonce()
 {
 	// Nonce
@@ -290,6 +300,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 				decompressBlock(currentBlock, blockBuffer, decompBuffer);
 			else
 				decompBuffer = blockBuffer;
+			//delete blockBuffer;
 		}
 		else
 		{
@@ -297,10 +308,12 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
 			else
 				decryptBuffer = blockBuffer;
+			//delete blockBuffer;
 			if (currentBlock.bitFlag & 0x1)
 				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
 			else
 				decompBuffer = decryptBuffer;
+			//delete decryptBuffer;
 		}
 		if (currentBlockID == entry.startingBlock)
 		{
@@ -323,7 +336,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		}
 		fclose(pFile);
 		currentBlockID++;
-		delete[] decompBuffer;
+		delete decompBuffer;
 	}
 	return fileBuffer;
 }
@@ -365,15 +378,9 @@ void Package::extractFiles()
 	if (outPathBase == "")
 		outPathBase = uint16ToHexStr(header.pkgID);
 
-	if (wavconv)
-	{
-		HMODULE tiger_lib = LoadLibrary(L"tiger_wem.dll");
-		typedef int (*FNPTR)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
-		FNPTR ConvertWem = (FNPTR)GetProcAddress(tiger_lib, "ConvertWem");
-	}
-
 	std::string bnkOutputPath = outPathBase + "/bnk";
 	std::string out = outPathBase;// + uint16ToHexStr(header.pkgID);
+	std::filesystem::create_directories(outPathBase);
 	std::string outputPath = out + "/wem";
 	std::string wavOutput = out + "/wav";
 
@@ -402,12 +409,33 @@ void Package::extractFiles()
 			if (hexid) {
 				if (wavconv)
 				{
-					std::filesystem::create_directories(".expath_temp");
+					//std::filesystem::create_directories(".expath_temp");
 					std::filesystem::create_directories(wavOutput);
-					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
-					if (std::filesystem::exists(".expath_temp/" + Hambit + ".wav"))
-						std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
-					delete[] fileBuffer;
+					//ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", Hambit.c_str());
+					FILE* oFile;
+					std::string name = wavOutput + "/" + Hambit + ".wem";
+					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+					fwrite(fileBuffer, entry.fileSize, 1, oFile);
+					fclose(oFile);
+					std::string vgmstring = "res\\vgmstream\\vgmstream-cli.exe \"" + name + "\" -o \"" + wavOutput + "/" + Hambit + ".wav\"";
+					std::cout << vgmstring << "\n";
+					system(vgmstring.c_str());
+					std::filesystem::remove(name);
+					//bool tr;
+					//while (true)
+					//{
+					//	if (std::filesystem::exists(".expath_temp/" + Hambit + ".wav"))
+					//	{
+					//		tr = true;
+					//		break;
+					//	}
+					//}
+					//if (tr)
+					//{
+					//	std::filesystem::rename(".expath_temp/" + Hambit + ".wav", outPathBase + "/" + Hambit + ".wav");
+					//}
+					//else
+					//	std::cout << "could not find temp file!?\n";
 				}
 				else
 				{
@@ -417,17 +445,40 @@ void Package::extractFiles()
 					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
-					delete[] fileBuffer;
 				}
 			}
 			else {
 				if (wavconv)
 				{
+					/*
 					std::filesystem::create_directories(".expath_temp");
-					std::filesystem::create_directories(wavOutput);
 					ConvertWem(fileBuffer, entry.fileSize, ".expath_temp", nameID.c_str());
-					std::filesystem::rename(".expath_temp/" + nameID + ".wav", wavOutput + "/" + nameID + ".wav");
-					delete[] fileBuffer;
+					bool tr = false;
+					while (true)
+					{
+						if (std::filesystem::exists(".expath_temp/" + Hambit + ".wav"))
+						{
+							tr = true;
+							break;
+						}
+					}
+					if (tr)
+					{
+						std::filesystem::rename(".expath_temp/" + Hambit + ".wav", wavOutput + "/" + Hambit + ".wav");
+					}
+					else
+						std::cout << "could not find temp file!?\n";
+					*/
+					std::filesystem::create_directories(wavOutput);
+					FILE* oFile;
+					std::string name = wavOutput + "/" + Hambit + ".wem";
+					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+					fwrite(fileBuffer, entry.fileSize, 1, oFile);
+					fclose(oFile);
+					std::string vgmstring = "res\\vgmstream\\vgmstream-cli.exe \"" + name + "\" -o \"" + wavOutput + "/" + Hambit + ".wav\"";
+					std::cout << vgmstring << "\n";
+					system(vgmstring.c_str());
+					std::filesystem::remove(name);
 				}
 				else {
 					std::filesystem::create_directories(outputPath);
@@ -436,11 +487,11 @@ void Package::extractFiles()
 					oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 					fwrite(fileBuffer, entry.fileSize, 1, oFile);
 					fclose(oFile);
-					delete[] fileBuffer;
+
 				}
 			}
-
-		}
+			delete fileBuffer;
+		}		
 		else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
 		{
 			
@@ -462,6 +513,8 @@ void Package::extractFiles()
 	}
 	if (std::filesystem::exists(".expath_temp"))
 		std::filesystem::remove_all(".expath_temp");
+	entries.clear();
+	blocks.clear();
 }
 
 // Bcrypt decryption implementation largely from Sir Kane's SourcePublic_v2.cpp, very mysterious
@@ -545,7 +598,8 @@ bool Package::Unpack()
 	modifyNonce();
 	getEntryTable();
 	getBlockTable();
-	fclose(pkgFile);
+	//fclose(pkgFile);
+	_fcloseall();
 	extractFiles();
 	return 0;
 }

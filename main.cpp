@@ -13,11 +13,12 @@
 
 static void show_usage()
 {
-	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -o [output path] -v [version] -w -h -t\n"
+	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -o [output path] -v [version] -w -h -t -f\n"
 		<< "-w converts wem audio to standard wav\n"
 		<< "-h names the audio with hexadecimal, to make it easier to read\n"
 		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
-		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)"
+		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
+		<< "-f extracts from all the packages in the packages path"
 		<< std::endl;
 }
 
@@ -74,28 +75,58 @@ int main(int argc, char** argv)
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
-				pkgf.push_back(pkgidfolder);
-				existingPkgIDS.insert(pkgidfolder);
+				//if (sarge.exists("notaudio")) {
+					//std::cout << dir_entry.path().string() << "\n";
+					if (dir_entry.path().string().find("audio") != std::string::npos) {
+						//std::cout << "AUDIO: " + dir_entry.path().string() << "\n";
+						if (dir_entry.path().string().find("_en") != std::string::npos)
+							continue;
+						pkgf.push_back(pkgidfolder);
+						existingPkgIDS.insert(pkgidfolder);
+					}
+					else {
+						continue;
+					}
+				//}
+				//pkgf.push_back(pkgidfolder);
+				//existingPkgIDS.insert(pkgidfolder);
 			}
 		}
 		std::vector<std::string> mdEntries;
 		for (int o = 0; o < existingPkgIDS.size(); o++)
 		{
-			Package pkg(pkgf[o], packagesPath);
-			pkg.txtpgen = sarge.exists("txtpgen");
-			pkg.hexid = sarge.exists("hexid");
-			pkg.wavconv = sarge.exists("wavconv");
-			bool d1 = false;
-			bool prebl = false;
+			//std::string ihatethis = "DestinyUnpackerCPP.exe -p \"" + packagesPath + "\" -i " + pkgf[o];
+			
+			std::string execpath(argv[0]);
+			std::string ihatethis = execpath + " -p \"" + packagesPath + "\" -i " + pkgf[o];
+			ihatethis += " -o \"" + outputPath +"\"";
+			if (sarge.exists("txtpgen"))
+				ihatethis += " -t";
+			if (sarge.exists("hexid"))
+				ihatethis += " -h";
+			if (sarge.exists("wavconv"))
+				ihatethis += " -w";
 			if (boost::iequals(version, "d1"))
-				d1 = true;
+				ihatethis += " -v d1";
 			else if (boost::iequals(version, "prebl"))
-				prebl = true;
-			pkg.outPathBase = outputPath;
-			pkg.d1 = d1;
-			pkg.preBL = prebl;
+				ihatethis += " -v prebl";
+			std::cout << ihatethis << "\n";
+			system(ihatethis.c_str());
+			
+			/*
+			Package* Pkg = new Package(pkgf[o], packagesPath);
 
-			pkg.Unpack();
+			Pkg->txtpgen = sarge.exists("txtpgen");
+			Pkg->hexid = sarge.exists("hexid");
+			Pkg->wavconv = sarge.exists("wavconv");
+			Pkg->outPathBase = outputPath;
+			Pkg->d1 = boost::iequals(version, "d1");
+			Pkg->preBL = boost::iequals(version, "prebl");
+
+			Pkg->Unpack();
+			Pkg->entries.clear();
+			free(Pkg);
+			*/
 		}
 	}
 	else
@@ -106,15 +137,9 @@ int main(int argc, char** argv)
 		Pkg.txtpgen = sarge.exists("txtpgen");
 		Pkg.hexid = sarge.exists("hexid");
 		Pkg.wavconv = sarge.exists("wavconv");
-		bool d1 = false;
-		bool prebl = false;
-		if (boost::iequals(version, "d1"))
-			d1 = true;
-		else if (boost::iequals(version, "prebl"))
-			prebl = true;
 		Pkg.outPathBase = outputPath;
-		Pkg.d1 = d1;
-		Pkg.preBL = prebl;
+		Pkg.d1 = boost::iequals(version, "d1");
+		Pkg.preBL = boost::iequals(version, "prebl");
 
 		Pkg.Unpack();
 	}
