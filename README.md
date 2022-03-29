@@ -38,7 +38,7 @@ Obvious thanks to Mont for making his code public.
 
 Thanks to Philip for helping me to get it extracting .WEMs.
 
-Thanks to HighRTT for helping out a lot, and making the WEM to WAV converter library I use.  
+Thanks to HighRTT for helping out a lot, and making the WEM to WAV converter library I used.  
 
 Credit to OnscreenLoki for writing the tutorial.
 
