@@ -75,18 +75,73 @@ int main(int argc, char** argv)
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
-				//if (sarge.exists("notaudio")) {
-					//std::cout << dir_entry.path().string() << "\n";
-					if (dir_entry.path().string().find("audio") != std::string::npos) {
-						//std::cout << "AUDIO: " + dir_entry.path().string() << "\n";
-						if (dir_entry.path().string().find("_en") != std::string::npos)
-							continue;
-						pkgf.push_back(pkgidfolder);
-						existingPkgIDS.insert(pkgidfolder);
+				if (boost::iequals(version, "d1")) //d1 doesnt have defined 'audio' pkgs other than globals
+				{
+					std::string pkgidf;
+					//skip probably unwanted dialogue
+					if (dir_entry.path().string().find("_jpn_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_de_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_en_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_fr_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_it_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_pt_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_sp_") != std::string::npos)
+						continue;
+					pkgidf = pkgidfolder;
+					if (dir_entry.path().string().find("_unp") != std::string::npos)
+					{
+						std::string tt;
+						tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
+						std::replace(tt.begin(), tt.end(), '\\', '/');
+						tt = dir_entry.path().string().substr(tt.find_last_of('/'));
+						pkgidf = tt.substr(1);
 					}
-					else {
+					pkgf.push_back(pkgidf);
+					existingPkgIDS.insert(pkgidf);
+				}
+				else
+				{
+					if (dir_entry.path().string().find("audio") != std::string::npos)
+					{
+						std::string pkgidf;
+						//skip probably unwanted dialogue
+						if (dir_entry.path().string().find("_jpn_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_de_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_en_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_fr_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_it_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_pt_") != std::string::npos)
+							continue;
+						if (dir_entry.path().string().find("_sp_") != std::string::npos)
+							continue;
+						pkgidf = pkgidfolder;
+						if (dir_entry.path().string().find("_unp") != std::string::npos)
+						{
+							std::string tt;
+							tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
+							std::replace(tt.begin(), tt.end(), '\\', '/');
+							tt = dir_entry.path().string().substr(tt.find_last_of('/'));
+							pkgidf = tt.substr(1);
+						}
+						pkgf.push_back(pkgidf);
+						existingPkgIDS.insert(pkgidf);
+					}
+					else
+					{
 						continue;
 					}
+				}
 				//}
 				//pkgf.push_back(pkgidfolder);
 				//existingPkgIDS.insert(pkgidfolder);
@@ -97,6 +152,7 @@ int main(int argc, char** argv)
 		{
 			//std::string ihatethis = "DestinyUnpackerCPP.exe -p \"" + packagesPath + "\" -i " + pkgf[o];
 			
+			/*
 			std::string execpath(argv[0]);
 			std::string ihatethis = execpath + " -p \"" + packagesPath + "\" -i " + pkgf[o];
 			ihatethis += " -o \"" + outputPath +"\"";
@@ -112,22 +168,43 @@ int main(int argc, char** argv)
 				ihatethis += " -v prebl";
 			std::cout << ihatethis << "\n";
 			system(ihatethis.c_str());
-			
-			/*
-			Package* Pkg = new Package(pkgf[o], packagesPath);
-
-			Pkg->txtpgen = sarge.exists("txtpgen");
-			Pkg->hexid = sarge.exists("hexid");
-			Pkg->wavconv = sarge.exists("wavconv");
-			Pkg->outPathBase = outputPath;
-			Pkg->d1 = boost::iequals(version, "d1");
-			Pkg->preBL = boost::iequals(version, "prebl");
-
-			Pkg->Unpack();
-			Pkg->entries.clear();
-			free(Pkg);
 			*/
+			
+			Package Pkg(pkgf[o], packagesPath);
+
+			Pkg.txtpgen = sarge.exists("txtpgen");
+			Pkg.hexid = sarge.exists("hexid");
+			Pkg.wavconv = sarge.exists("wavconv");
+			Pkg.outPathBase = outputPath;
+			Pkg.d1 = boost::iequals(version, "d1");
+			Pkg.preBL = boost::iequals(version, "prebl");
+
+			//Pkg.Unpack();
+			Pkg.readHeader();
+			if (!Pkg.initOodle())
+			{
+				printf("\nFailed to initialise oodle");
+				return 1;
+			}
+			Pkg.modifyNonce();
+			Pkg.getEntryTable();
+			for (int i = 0; i < Pkg.entries.size(); i++)
+			{
+				if (Pkg.entries[i].numType == 26 && Pkg.entries[i].numSubType == 6)
+				{
+					std::string bnkPath = "E:/DestinyMusic/TWQBnks/" + uint16ToHexStr(Pkg.header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
+					unsigned char* data = Pkg.getBufferFromEntry(Pkg.entries[i]);
+					FILE* oBnkFile;
+					oBnkFile = _fsopen(bnkPath.c_str(), "wb", _SH_DENYNO);
+					fwrite(data, Pkg.entries[i].fileSize, 1, oBnkFile);
+					fclose(oBnkFile);
+					delete[] data;
+				}
+			}
+			fclose(Pkg.pkgFile);
 		}
+		std::string bnkConv = "py res\\wwiser\\wwiser.pyz \"E:/DestinyMusic/TWQBnks/*.bnk\" -g";
+		system(bnkConv.c_str());
 	}
 	else
 	{

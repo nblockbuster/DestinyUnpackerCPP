@@ -336,7 +336,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		}
 		fclose(pFile);
 		currentBlockID++;
-		delete decompBuffer;
+		delete[] decompBuffer;
 	}
 	return fileBuffer;
 }
@@ -513,8 +513,6 @@ void Package::extractFiles()
 	}
 	if (std::filesystem::exists(".expath_temp"))
 		std::filesystem::remove_all(".expath_temp");
-	entries.clear();
-	blocks.clear();
 }
 
 // Bcrypt decryption implementation largely from Sir Kane's SourcePublic_v2.cpp, very mysterious
@@ -599,7 +597,6 @@ bool Package::Unpack()
 	getEntryTable();
 	getBlockTable();
 	fclose(pkgFile);
-	//_fcloseall();
 	extractFiles();
 	return 0;
 }

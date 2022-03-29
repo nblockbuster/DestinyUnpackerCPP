@@ -78,7 +78,6 @@ private:
 
 	const std::string CUSTOM_DIR = "output";
 
-	FILE* pkgFile;
 	std::vector<Block> blocks;
 
 	int64_t OodleLZ_Decompress;
@@ -92,6 +91,7 @@ private:
 	unsigned char* genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths);
 
 public:
+	FILE* pkgFile;
 	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
