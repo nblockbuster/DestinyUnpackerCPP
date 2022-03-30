@@ -152,7 +152,6 @@ int main(int argc, char** argv)
 		{
 			//std::string ihatethis = "DestinyUnpackerCPP.exe -p \"" + packagesPath + "\" -i " + pkgf[o];
 			
-			
 			std::string execpath(argv[0]);
 			std::string ihatethis = execpath + " -p \"" + packagesPath + "\" -i " + pkgf[o];
 			ihatethis += " -o \"" + outputPath +"\"";
@@ -203,12 +202,11 @@ int main(int argc, char** argv)
 			fclose(Pkg.pkgFile);
 			*/
 		}
-		std::string bnkConv = "py res\\wwiser\\wwiser.pyz \"E:/DestinyMusic/TWQBnks/*.bnk\" -g";
-		system(bnkConv.c_str());
+		//std::string bnkConv = "py res\\wwiser\\wwiser.pyz \"E:/DestinyMusic/TWQBnks/*.bnk\" -g";
+		//system(bnkConv.c_str());
 	}
 	else
 	{
-
 		Package Pkg(pkgId, packagesPath);
 
 		Pkg.txtpgen = sarge.exists("txtpgen");
