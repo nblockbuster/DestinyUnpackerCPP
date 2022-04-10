@@ -18,7 +18,8 @@ static void show_usage()
 		<< "-h names the audio with hexadecimal, to make it easier to read\n"
 		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
 		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
-		<< "-f extracts from all the packages in the packages path"
+		<< "-f extracts from all the packages in the packages path\n"
+		<< "-b extracts ONLY .bnk files"
 		<< std::endl;
 }
 
