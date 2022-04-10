@@ -99,7 +99,8 @@ public:
 	std::string version;
 	bool preBL = false;
 	bool d1 = false;
-	
+	bool bnkonly = false;
+
 	PkgHeader header;
 	std::vector<Entry> entries;
 

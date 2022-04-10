@@ -404,6 +404,9 @@ void Package::extractFiles()
 		std::string nameID = entry.reference2;
 		if (entry.numType == wemType && entry.numSubType == wemSubType)
 		{
+			if (bnkonly == true)
+				continue;
+
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 
 			if (hexid) {
@@ -493,8 +496,7 @@ void Package::extractFiles()
 			delete fileBuffer;
 		}		
 		else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
-		{
-			
+		{	
 			std::filesystem::create_directories(bnkOutputPath);
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			FILE* oFile;
@@ -598,6 +600,10 @@ bool Package::Unpack()
 	getBlockTable();
 	fclose(pkgFile);
 	extractFiles();
+
+	entries.clear();
+	blocks.clear();
+
 	return 0;
 }
 
@@ -880,7 +886,7 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 	{
 		packagePath[packagePath.size() - 5] = currentBlock.patchID + 48;
 		FILE* pFile;
-		pFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
+		fopen_s(&pFile, packagePath.c_str(), "rb");
 		fseek(pFile, currentBlock.offset, SEEK_SET);
 		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
 		size_t result;

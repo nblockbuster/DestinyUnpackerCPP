@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("h", "hexid", "hex id", false);
 	sarge.setArgument("f", "folder", "folder packages", false);
+	sarge.setArgument("b", "bnkonly", "only bnks", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
@@ -147,27 +148,11 @@ int main(int argc, char** argv)
 				//existingPkgIDS.insert(pkgidfolder);
 			}
 		}
-		std::vector<std::string> mdEntries;
+		//std::vector<std::string> usmNames;
 		for (int o = 0; o < existingPkgIDS.size(); o++)
 		{
-			//std::string ihatethis = "DestinyUnpackerCPP.exe -p \"" + packagesPath + "\" -i " + pkgf[o];
-			
-			std::string execpath(argv[0]);
-			std::string ihatethis = execpath + " -p \"" + packagesPath + "\" -i " + pkgf[o];
-			ihatethis += " -o \"" + outputPath +"\"";
-			if (sarge.exists("txtpgen"))
-				ihatethis += " -t";
-			if (sarge.exists("hexid"))
-				ihatethis += " -h";
-			if (sarge.exists("wavconv"))
-				ihatethis += " -w";
-			if (boost::iequals(version, "d1"))
-				ihatethis += " -v d1";
-			else if (boost::iequals(version, "prebl"))
-				ihatethis += " -v prebl";
-			std::cout << ihatethis << "\n";
-			system(ihatethis.c_str());			
-			/*
+			std::cout << pkgf[o] << "\n";
+
 			Package Pkg(pkgf[o], packagesPath);
 
 			Pkg.txtpgen = sarge.exists("txtpgen");
@@ -176,34 +161,10 @@ int main(int argc, char** argv)
 			Pkg.outPathBase = outputPath;
 			Pkg.d1 = boost::iequals(version, "d1");
 			Pkg.preBL = boost::iequals(version, "prebl");
+			Pkg.bnkonly = sarge.exists("bnkonly");
 
-			//Pkg.Unpack();
-			Pkg.readHeader();
-			if (!Pkg.initOodle())
-			{
-				printf("\nFailed to initialise oodle");
-				return 1;
-			}
-			Pkg.modifyNonce();
-			Pkg.getEntryTable();
-			for (int i = 0; i < Pkg.entries.size(); i++)
-			{
-				if (Pkg.entries[i].numType == 26 && Pkg.entries[i].numSubType == 6)
-				{
-					std::string bnkPath = "E:/DestinyMusic/TWQBnks/" + uint16ToHexStr(Pkg.header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
-					unsigned char* data = Pkg.getBufferFromEntry(Pkg.entries[i]);
-					FILE* oBnkFile;
-					oBnkFile = _fsopen(bnkPath.c_str(), "wb", _SH_DENYNO);
-					fwrite(data, Pkg.entries[i].fileSize, 1, oBnkFile);
-					fclose(oBnkFile);
-					delete[] data;
-				}
-			}
-			fclose(Pkg.pkgFile);
-			*/
+			Pkg.Unpack();
 		}
-		//std::string bnkConv = "py res\\wwiser\\wwiser.pyz \"E:/DestinyMusic/TWQBnks/*.bnk\" -g";
-		//system(bnkConv.c_str());
 	}
 	else
 	{
@@ -215,6 +176,7 @@ int main(int argc, char** argv)
 		Pkg.outPathBase = outputPath;
 		Pkg.d1 = boost::iequals(version, "d1");
 		Pkg.preBL = boost::iequals(version, "prebl");
+		Pkg.bnkonly = sarge.exists("bnkonly");
 
 		Pkg.Unpack();
 	}
