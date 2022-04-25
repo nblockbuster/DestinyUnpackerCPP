@@ -33,8 +33,9 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
 	{
 		fullPath = entry.path().string();
-		if (fullPath.find("ps3_") != std::string::npos)
-			ps3 = true;
+		//std::cout << entry.path().stem().string() << "\n";
+		if (fullPath.find("ps3_") != std::string::npos || entry.path().stem().string().substr(0, 4) == "360");
+			ps3_x360 = true;
 		if (fullPath.find(packageID) != std::string::npos)
 		{
 			patchID = std::stoi(fullPath.substr(fullPath.size() - 5, 1));
@@ -62,7 +63,7 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 				fseek(patchPkg, 0x10, SEEK_SET);
 
 			fread((char*)&pkgID, 1, 2, patchPkg);
-			if (ps3)
+			if (ps3_x360)
 				pkgID = swapUInt16Endianness(pkgID);
 			if (packageID == uint16ToHexStr(pkgID))
 			{
@@ -72,7 +73,7 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 					fseek(patchPkg, 0x30, SEEK_SET);
 
 				fread((char*)&patchID, 1, 2, patchPkg);
-				if (ps3)
+				if (ps3_x360)
 					patchID = swapUInt16Endianness(patchID);
 				if (patchID > largestPatchID) largestPatchID = patchID;
 				std::replace(fullPath.begin(), fullPath.end(), '\\', '/');
@@ -94,7 +95,7 @@ bool Package::readHeader()
 		return false;
 	if (preBL || d1)
 	{
-		if (ps3)
+		if (ps3_x360)
 		{
 			uint32_t val, magic;
 			uint16_t val16;
@@ -201,7 +202,7 @@ void Package::getEntryTable()
 	for (uint32_t i = header.entryTableOffset; i < header.entryTableOffset + header.entryTableSize * 16; i += 16)
 	{
 		Entry entry;
-		if (ps3)
+		if (ps3_x360)
 		{
 			// EntryA
 			uint32_t entryA;
@@ -293,7 +294,7 @@ void Package::getBlockTable()
 	{
 		for (uint32_t i = header.blockTableOffset; i < header.blockTableOffset + header.blockTableSize * 0x20; i += 0x20)
 		{
-			if (ps3)
+			if (ps3_x360)
 			{
 				uint32_t val;
 				uint16_t val16;
@@ -561,7 +562,7 @@ void Package::extractFiles()
 		bnkType = 0;
 		bnkSubType = 19;
 		bnkSubType2 = 20;
-		if (ps3)
+		if (ps3_x360)
 		{
 			wemType = 8;
 			wemSubType = 28;

@@ -106,7 +106,7 @@ public:
 	bool bnkonly = false;
 	bool d1prebl = false;
 
-	bool ps3 = false;
+	bool ps3_x360 = false;
 
 	PkgHeader header;
 	std::vector<Entry> entries;
