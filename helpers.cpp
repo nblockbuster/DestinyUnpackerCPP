@@ -86,3 +86,15 @@ std::string getHashFromFile(std::string pkgn, std::string i)
 	two = uint32ToHexStr(one + secondhex_int + 2155872256); // two is full hash
 	return two;
 }
+
+std::string getPkgID(std::string hash)
+{
+	std::string pkgID = uint16ToHexStr(floor((hexStrToUint32(hash) - 0x80800000) / 8192));
+	return pkgID;
+}
+
+uint16_t getPkgID(uint32_t hash)
+{
+	uint16_t pkgID = floor((hash - 0x80800000) / 8192);
+	return pkgID;
+}

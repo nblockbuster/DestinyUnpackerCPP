@@ -15,8 +15,10 @@
 #include <set>
 #include "helpers.h"
 #include <unordered_map>
+#include <thread>
 //#include <wwriff.h>
 #include <boost/algorithm/string.hpp>
+//#include <boost/thread/thread.hpp>
 
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
 std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
@@ -83,13 +85,15 @@ private:
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
 
-
+	std::vector<std::string> pkgPatchStreamPaths;
 	void getBlockTable();
 	void extractFiles();
 	void decryptBlock(Block block, unsigned char* blockBuffer, unsigned char* &decryptBuffer);
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 	unsigned char* genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths);
-
+	//bool Extract(std::vector<Entry> entries, int i, int wemType, int wemSubType, int bnkType, int bnkSubType, int bnkSubType2, std::string wavOutput, std::vector<std::string> pkgPatchStreamPaths, std::string outputPath, std::string bnkOutputPath);
+	bool getWem(int i, std::string wavOutput, std::string outputPath, std::string Hambit, std::string nameID, Entry entry);
+	bool getBnk(int i, std::string bnkOutputPath, Entry entry);
 public:
 	FILE* pkgFile;
 	std::string packagesPath;
@@ -100,6 +104,9 @@ public:
 	bool preBL = false;
 	bool d1 = false;
 	bool bnkonly = false;
+	bool d1prebl = false;
+
+	bool ps3 = false;
 
 	PkgHeader header;
 	std::vector<Entry> entries;
@@ -109,7 +116,7 @@ public:
 	bool wavconv;
 
 	// Constructor
-	Package(std::string packageID, std::string pkgsPath);
+	Package(std::string packageID, std::string pkgsPath, bool prebl_d1);
 
 	bool initOodle();
 	void modifyNonce();
