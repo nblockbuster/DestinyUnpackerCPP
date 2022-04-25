@@ -2,7 +2,7 @@
 
 # Destiny 2 Unpacker
 
-Valid for all Destiny 1 PS4 and Destiny 2 PC packages.
+Valid for all Destiny 1 PS4/PS3 (untested X360) and Destiny 2 PC packages.
 
 This is a C++ "version" of my Python code that uses bcrypt for the AES-GCM-128 decryption.
 
