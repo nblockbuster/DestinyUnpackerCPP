@@ -33,8 +33,7 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 	for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(packagesPath))
 	{
 		fullPath = entry.path().string();
-		//std::cout << entry.path().stem().string().substr(0, 4) << "\n";
-		if (entry.path().stem().string().substr(0, 4) == "ps3_" || entry.path().stem().string().substr(0, 4) == "360_");
+		if (entry.path().stem().string().substr(0, 3) == "ps3" || entry.path().stem().string().substr(0, 3) == "360")
 			ps3_x360 = true;
 		if (fullPath.find(packageID) != std::string::npos)
 		{
@@ -59,11 +58,6 @@ std::string Package::getLatestPatchIDPath(std::string packageID)
 
 			uint32_t val;
 			fread((char*)&val, 1, 4, patchPkg);
-
-			if (val == 67115008 && val != 458776 && d1prebl == true)
-				ps3_x360 = true;
-			else if (val == 458776 && d1prebl == true)
-				ps3_x360 = false;
 
 			if (d1prebl)
 				fseek(patchPkg, 0x4, SEEK_SET);
@@ -102,12 +96,6 @@ bool Package::readHeader()
 		return false;
 	if (preBL || d1)
 	{
-		uint32_t val;
-		fread((char*)&val, 1, 4, pkgFile);
-		if (val == 67115008 || val == 50337792)
-			ps3_x360 = true;
-		else if (val == 458776)
-			ps3_x360 = false;
 		if (ps3_x360)
 		{
 			uint32_t val, magic;
