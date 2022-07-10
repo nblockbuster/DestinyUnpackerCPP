@@ -30,7 +30,8 @@ You can combine this with other commands to generate hexID-named of a given type
 -t - Generates **t**xtp files from the soundbanks in that package. "The way I see it it's a file referencing the actual wems, and telling vgmstream how to play them in what order."  
 -o - Specify an output folder.  
 -v - Change which version of destiny to extract from. (Valid inputs: d1, prebl)  
--f - Tells the unpacker to unpack all of the packages in the packages path.
+-f - Tells the unpacker to unpack all of the packages in the packages path.  
+-m - Only extracts music files (Needs OSTs.db file in the same folder as exe)
 
 -----
 
