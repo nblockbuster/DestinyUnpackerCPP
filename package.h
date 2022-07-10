@@ -1,7 +1,5 @@
 #pragma once
 #pragma comment(lib, "bcrypt.lib")
-//#pragma comment(lib, "tiger_wem.lib")
-//#include "tiger_wem/tiger_wem.h"
 #include <string>
 #include <vector>
 #include <array>
@@ -15,10 +13,17 @@
 #include <set>
 #include "helpers.h"
 #include <unordered_map>
-#include <thread>
-//#include <wwriff.h>
 #include <boost/algorithm/string.hpp>
-//#include <boost/thread/thread.hpp>
+#include "E:/ww2ogg/src/wwriff.h"
+
+//I might reuse these later, for checking stealthily updated wem/bnks, and built in revorb
+
+//#include "D:\vcpkg\packages\xxhash_x64-windows\include\xxh3.h"
+
+//extern "C"
+//{
+//	#include <revorb.h>
+//}
 
 std::unordered_map<uint64_t, uint32_t> loadH64Table();
 std::unordered_map<uint64_t, uint32_t> generateH64Table(std::string packagesPath);
@@ -59,8 +64,6 @@ struct Block
 
 typedef int64_t(*OodleLZ64_DecompressDef)(unsigned char* Buffer, int64_t BufferSize, unsigned char* OutputBuffer, int64_t OutputBufferSize, int32_t a, int32_t b, int64_t c, void* d, void* e, void* f, void* g, void* h, void* i, int32_t ThreadModule);
 
-typedef int (*ConvertWemDef)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
-
 /*
 * Handles the separation of a .pkg file into its constituent binary files.
 * It will unpack the PatchID given, so the latest should be given if updates are being processed.
@@ -84,6 +87,9 @@ private:
 
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
+	HMODULE hRevorbDll = LoadLibrary(L"res\\librevorb.dll");
+	typedef int (*RevorbDef)(unsigned char*& fi, unsigned char*& fo);
+	RevorbDef revorb = (RevorbDef)GetProcAddress(hRevorbDll, "revorb");
 
 	std::vector<std::string> pkgPatchStreamPaths;
 	void getBlockTable();
@@ -92,28 +98,30 @@ private:
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
 	unsigned char* genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths);
 	//bool Extract(std::vector<Entry> entries, int i, int wemType, int wemSubType, int bnkType, int bnkSubType, int bnkSubType2, std::string wavOutput, std::vector<std::string> pkgPatchStreamPaths, std::string outputPath, std::string bnkOutputPath);
-	bool getWem(int i, std::string wavOutput, std::string outputPath, std::string Hambit, std::string nameID, Entry entry);
+	bool getWem(int i, std::string outputPath, std::string Hambit, std::string nameID, Entry entry);
 	bool getBnk(int i, std::string bnkOutputPath, Entry entry);
 public:
 	FILE* pkgFile;
 	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
-	std::string outPathBase;
+	//std::string outPathBase;
 	std::string version;
-	bool preBL = false;
-	bool d1 = false;
-	bool bnkonly = false;
+	//bool preBL = false;
+	//bool d1 = false;
+	//bool bnkonly = false;
 	bool d1prebl = false;
+	//bool txtpgen;
+	//bool hexid;
+	//bool wavconv;
+	//bool oggconv;
+	PackageOptions options;
 
 	bool ps3_x360 = false;
 
 	PkgHeader header;
 	std::vector<Entry> entries;
-
-	bool txtpgen;
-	bool hexid;
-	bool wavconv;
+	//std::unordered_map<std::string, XXH64_hash_t> WemHashMap;
 
 	// Constructor
 	Package(std::string packageID, std::string pkgsPath, bool prebl_d1);

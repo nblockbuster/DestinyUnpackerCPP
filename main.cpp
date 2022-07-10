@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include "Sarge/src/sarge.cpp"
 #include <stdio.h>
-#include <chrono>
+//#include <chrono>
 
 // Using Sarge to parse command line args: https://mayaposch.wordpress.com/2019/03/17/parsing-command-line-arguments-in-c/
 // Also requires the Boost library for easiest way of capitalizing a hash
@@ -17,11 +17,14 @@ static void show_usage()
 	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -o [output path] -v [version] -w -h -t -f\n"
 		<< "-w converts wem audio to standard wav\n"
 		<< "-h names the audio with hexadecimal, to make it easier to read\n"
-		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
-		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
 		<< "-f extracts from all the packages in the packages path\n"
+		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
+		<< "-m extracts only music audio files\n"
+		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
 		<< "-b extracts ONLY .bnk files\n"
-		<< "-s [hash/ginsorid] extracts a single file, given it's hash/ginsorid"
+		<< "-s [hash/ginsorid] extracts a single file, given it's hash/ginsorid\n"
+		<< "-l [backup package id] for use with -s, if you already know the package its in\n"
+		<< "-g converts to ogg"
 		<< std::endl;
 }
 
@@ -32,14 +35,17 @@ int main(int argc, char** argv)
 	sarge.setArgument("i", "pkgsIds", "pkgs id", true);
 	sarge.setArgument("p", "pkgspath", "pkgs path", true);
 	sarge.setArgument("o", "outpath", "output path", true);
-	sarge.setArgument("v", "version", "pkg version", true);
 	sarge.setArgument("w", "wavconv", "wav conv", false);
-	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("h", "hexid", "hex id", false);
 	sarge.setArgument("f", "folder", "folder packages", false);
+	sarge.setArgument("v", "version", "pkg version", true);
+	sarge.setArgument("m", "music_only", "only extracts audio files that are known to be music", false);
+	sarge.setArgument("t", "txtpgen", "txtpgen", false);
 	sarge.setArgument("b", "bnkonly", "only bnks", false);
 	sarge.setArgument("s", "singlefile", "single file", true);
 	sarge.setArgument("l", "pkgbackup", "backup pkg flag for single file export", true);
+	sarge.setArgument("g", "oggconv", "ogg conversion", false);
+	//sarge.setArgument("m", "gen_wem_hashmap", "generate a map of ginsorid to hashes", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
@@ -57,6 +63,7 @@ int main(int argc, char** argv)
 	sarge.getFlag("version", version);
 	sarge.getFlag("singlefile", singleFileHash);
 	sarge.getFlag("pkgbackup", backupId);
+	
 	if (packagesPath == "")
 	{
 		std::cerr << "Invalid parameters, potentially backslashes in paths or paths not given.\n";
@@ -71,10 +78,13 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
+	//mainly used in the json parser python script
+
 	if (singleFileHash != "")
 	{
 		std::string pkgid;
 		Entry audioEntry;
+		bool bFound = false;
 		if (backupId == "")
 		{
 			std::filesystem::path pkgsFolder{ packagesPath };
@@ -86,74 +96,6 @@ int main(int argc, char** argv)
 				pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 				if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 				{
-					if (boost::iequals(version, "d1")) //d1 doesnt have defined 'audio' pkgs other than globals
-					{
-						std::string pkgidf;
-						//skip probably unwanted dialogue
-						if (dir_entry.path().string().find("_jpn_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_de_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_en_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_fr_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_it_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_pt_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_sp_") != std::string::npos)
-							continue;
-						pkgidf = pkgidfolder;
-						if (dir_entry.path().string().find("_unp") != std::string::npos)
-						{
-							std::string tt;
-							tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
-							std::replace(tt.begin(), tt.end(), '\\', '/');
-							tt = dir_entry.path().string().substr(tt.find_last_of('/'));
-							pkgidf = tt.substr(1);
-						}
-						pkgf.push_back(pkgidf);
-						existingPkgIDS.insert(pkgidf);
-					}
-					else
-					{
-						if (dir_entry.path().string().find("audio") != std::string::npos)
-						{
-							std::string pkgidf;
-							//skip probably unwanted dialogue
-							if (dir_entry.path().string().find("_jpn_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_de_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_en_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_fr_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_it_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_pt_") != std::string::npos)
-								continue;
-							if (dir_entry.path().string().find("_sp_") != std::string::npos)
-								continue;
-							pkgidf = pkgidfolder;
-							if (dir_entry.path().string().find("_unp") != std::string::npos)
-							{
-								std::string tt;
-								tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
-								std::replace(tt.begin(), tt.end(), '\\', '/');
-								tt = dir_entry.path().string().substr(tt.find_last_of('/'));
-								pkgidf = tt.substr(1);
-							}
-							pkgf.push_back(pkgidf);
-							existingPkgIDS.insert(pkgidf);
-						}
-						else
-						{
-							continue;
-						}
-					}
-					/*
 					if (dir_entry.path().string().find("audio") != std::string::npos)
 					{
 						std::string tt, pkgidf;
@@ -183,13 +125,9 @@ int main(int argc, char** argv)
 						existingPkgIDS.insert(pkgidf);
 					}
 					else
-						continue;
-					else
 					{
-						pkgf.push_back(pkgidfolder);
-						existingPkgIDS.insert(pkgidfolder);
+						continue;
 					}
-					*/
 				}
 			}
 			for (int o = 0; o < existingPkgIDS.size(); o++)
@@ -197,8 +135,8 @@ int main(int argc, char** argv)
 				std::cout << "Searching for " + singleFileHash + " in " + pkgf[o] << "\n";
 
 				Package Pkg(pkgf[o], packagesPath, (boost::iequals(version, "prebl") || boost::iequals(version, "d1")));
-				Pkg.d1 = boost::iequals(version, "d1");
-				Pkg.preBL = boost::iequals(version, "prebl");
+				Pkg.options.d1 = boost::iequals(version, "d1");
+				Pkg.options.preBL = boost::iequals(version, "prebl");
 				Pkg.readHeader();
 				Pkg.getEntryTable();
 				for (int i = 0; i < Pkg.entries.size(); i++)
@@ -209,6 +147,7 @@ int main(int argc, char** argv)
 						pkgid = uint16ToHexStr(Pkg.header.pkgID);
 						std::cout << "Found in " + pkgid << "\n";
 						audioEntry = entry;
+						bFound = true;
 						break;
 					}
 				}
@@ -217,16 +156,22 @@ int main(int argc, char** argv)
 			}
 		}
 
+		if (!bFound)
+		{
+			std::cout << "Could not find audio.\n";
+			return 5;
+		}
+
 		if ((singleFileHash.substr(6, 2) == "80" || singleFileHash.substr(6, 2) == "81") && backupId == "")
 			pkgid = getPkgID(singleFileHash);
 
 		Package pkg(pkgid, packagesPath, (boost::iequals(version, "prebl") || boost::iequals(version, "d1")));
-		pkg.d1 = boost::iequals(version, "d1");
-		pkg.preBL = boost::iequals(version, "prebl");
+		pkg.options.d1 = boost::iequals(version, "d1");
+		pkg.options.preBL = boost::iequals(version, "prebl");
 		pkg.readHeader();
 		pkg.getEntryTable();
 		int wemType, wemSubType, bnkType, bnkSubType, bnkSubType2;
-		if (pkg.preBL)
+		if (pkg.options.preBL)
 		{
 			wemType = 26;
 			wemSubType = 6;
@@ -234,7 +179,7 @@ int main(int argc, char** argv)
 			bnkSubType = 5;
 			bnkSubType2 = 5;
 		}
-		else if (pkg.d1)
+		else if (pkg.options.d1)
 		{
 			wemType = 8;
 			wemSubType = 21;
@@ -266,7 +211,6 @@ int main(int argc, char** argv)
 		std::string name;
 		if (audioEntry.reference == "")
 		{
-			//t = pkg.getEntryTypes(singleFileHash, st);
 			Entry bnkentry = pkg.entries[(hexStrToUint32(singleFileHash) % 8192)];
 			t = bnkentry.numType;
 			st = bnkentry.numSubType;
@@ -342,16 +286,14 @@ int main(int argc, char** argv)
 		std::vector<std::string> pkgf;
 		for (auto const& dir_entry : std::filesystem::directory_iterator{ pkgsFolder })
 		{
+			std::string pkgidf;
 			std::string pkgidfolder = dir_entry.path().string();
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
-				if (boost::iequals(version, "d1")) //d1 doesnt have defined 'audio' pkgs other than globals
+				if (dir_entry.path().string().find("audio") != std::string::npos || boost::iequals(version, "d1"))
 				{
-					std::string pkgidf;
 					//skip probably unwanted dialogue
-					if (dir_entry.path().string().find("_jpn_") != std::string::npos)
-						continue;
 					if (dir_entry.path().string().find("_de_") != std::string::npos)
 						continue;
 					if (dir_entry.path().string().find("_en_") != std::string::npos)
@@ -360,7 +302,15 @@ int main(int argc, char** argv)
 						continue;
 					if (dir_entry.path().string().find("_it_") != std::string::npos)
 						continue;
+					if (dir_entry.path().string().find("_jpn_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_mx_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_po_") != std::string::npos)
+						continue;
 					if (dir_entry.path().string().find("_pt_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_ru_") != std::string::npos)
 						continue;
 					if (dir_entry.path().string().find("_sp_") != std::string::npos)
 						continue;
@@ -377,79 +327,87 @@ int main(int argc, char** argv)
 					existingPkgIDS.insert(pkgidf);
 				}
 				else
+					continue;
+				/*
+				pkgidf = pkgidfolder;
+				if (dir_entry.path().string().find("_unp") != std::string::npos)
 				{
-					if (dir_entry.path().string().find("audio") != std::string::npos)
-					{
-						std::string pkgidf;
-						//skip probably unwanted dialogue
-						if (dir_entry.path().string().find("_jpn_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_de_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_en_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_fr_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_it_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_pt_") != std::string::npos)
-							continue;
-						if (dir_entry.path().string().find("_sp_") != std::string::npos)
-							continue;
-						pkgidf = pkgidfolder;
-						if (dir_entry.path().string().find("_unp") != std::string::npos)
-						{
-							std::string tt;
-							tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
-							std::replace(tt.begin(), tt.end(), '\\', '/');
-							tt = dir_entry.path().string().substr(tt.find_last_of('/'));
-							pkgidf = tt.substr(1);
-						}
-						pkgf.push_back(pkgidf);
-						existingPkgIDS.insert(pkgidf);
-					}
-					else
-					{
-						continue;
-					}
+					std::string tt;
+					tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
+					std::replace(tt.begin(), tt.end(), '\\', '/');
+					tt = dir_entry.path().string().substr(tt.find_last_of('/'));
+					pkgidf = tt.substr(1);
 				}
-				//}
-				//pkgf.push_back(pkgidfolder);
-				//existingPkgIDS.insert(pkgidfolder);
+				pkgf.push_back(pkgidf);
+				existingPkgIDS.insert(pkgidf);
+				*/
 			}
 		}
-		//std::vector<std::string> usmNames;
 		for (int o = 0; o < existingPkgIDS.size(); o++)
 		{
 			std::cout << pkgf[o] << "\n";
 
 			Package Pkg(pkgf[o], packagesPath, (boost::iequals(version, "prebl") || boost::iequals(version, "d1")));
 
-			Pkg.txtpgen = sarge.exists("txtpgen");
-			Pkg.hexid = sarge.exists("hexid");
-			Pkg.wavconv = sarge.exists("wavconv");
-			Pkg.outPathBase = outputPath;
-			Pkg.d1 = boost::iequals(version, "d1");
-			Pkg.preBL = boost::iequals(version, "prebl");
-			Pkg.bnkonly = sarge.exists("bnkonly");
+			PackageOptions options;
 
+			options.txtpgen = sarge.exists("txtpgen");
+			options.hexid = sarge.exists("hexid");
+			options.wavconv = sarge.exists("wavconv");
+			options.oggconv = sarge.exists("oggconv");
+			options.outPathBase = outputPath;
+			options.d1 = boost::iequals(version, "d1");
+			options.preBL = boost::iequals(version, "prebl");
+			options.bnkonly = sarge.exists("bnkonly");
+			options.musiconly = sarge.exists("music_only");
+			
+			Pkg.options = options;
+				
 			Pkg.Unpack();
 		}
 	}
+
 	else
 	{
 		Package Pkg(pkgId, packagesPath, (boost::iequals(version, "prebl") || boost::iequals(version, "d1")));
 
-		Pkg.txtpgen = sarge.exists("txtpgen");
-		Pkg.hexid = sarge.exists("hexid");
-		Pkg.wavconv = sarge.exists("wavconv");
-		Pkg.outPathBase = outputPath;
-		Pkg.d1 = boost::iequals(version, "d1");
-		Pkg.preBL = boost::iequals(version, "prebl");
-		Pkg.bnkonly = sarge.exists("bnkonly");
+		PackageOptions options;
+		
+		options.txtpgen = sarge.exists("txtpgen");
+		options.hexid = sarge.exists("hexid");
+		options.wavconv = sarge.exists("wavconv");
+		options.oggconv = sarge.exists("oggconv");
+		options.outPathBase = outputPath;
+		options.d1 = boost::iequals(version, "d1");
+		options.preBL = boost::iequals(version, "prebl");
+		options.bnkonly = sarge.exists("bnkonly");
+		options.musiconly = sarge.exists("music_only");
+
+		Pkg.options = options;
 
 		Pkg.Unpack();
+		
+		/*
+		if (sarge.exists("gen_wem_hashmap"))
+		{
+			FILE* wem_hashes_file = nullptr;
+			wem_hashes_file = _fsopen("wem_hashes", "wb", _SH_DENYNO);
+			if (wem_hashes_file == nullptr) {
+				std::perror("buh");
+				exit(1);
+			}
+			uint32_t wemsize = Pkg.WemHashMap.size();
+			fwrite(&wemsize, 1, 4, wem_hashes_file);
+			for (auto& element : Pkg.WemHashMap)
+			{
+				std::cout << "Wem with GinsorID " + element.first + " has XXH64 hash value " + std::to_string(element.second) << "\n";
+				uint32_t ginsid = hexStrToUint32(element.first);
+				fwrite(&ginsid, 1, 4, wem_hashes_file);
+				fwrite((char*)&element.second, 1, 8, wem_hashes_file);
+			}
+			fclose(wem_hashes_file);
+		}
+		*/
 	}
 	return 0;
 }
-

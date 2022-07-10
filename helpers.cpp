@@ -1,5 +1,15 @@
 #include "helpers.h"
 
+std::string uint8ToHexStr(uint8_t num)
+{
+	std::stringstream stream;
+	stream << std::hex << num;
+	std::string hexStr = stream.str();
+	if (hexStr.size() % 2 != 0)
+		hexStr = std::string(2 - (hexStr.size() % 2), '0').append(hexStr);
+	return hexStr;
+}
+
 std::string uint16ToHexStr(uint16_t num)
 {
 	std::stringstream stream;
@@ -17,6 +27,16 @@ std::string uint32ToHexStr(uint32_t num)
 	std::string hexStr = stream.str();
 	if (hexStr.size() % 8 != 0)
 		hexStr = std::string(8 - (hexStr.size() % 8), '0').append(hexStr);
+	return hexStr;
+}
+
+std::string uint64ToHexStr(uint64_t num)
+{
+	std::stringstream stream;
+	stream << std::hex << swapUInt32Endianness(num);
+	std::string hexStr = stream.str();
+	if (hexStr.size() % 16 != 0)
+		hexStr = std::string(16 - (hexStr.size() % 16), '0').append(hexStr);
 	return hexStr;
 }
 
