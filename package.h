@@ -87,9 +87,9 @@ private:
 
 	int64_t OodleLZ_Decompress;
 	HMODULE hOodleDll;
-	HMODULE hRevorbDll = LoadLibrary(L"res\\librevorb.dll");
-	typedef int (*RevorbDef)(unsigned char*& fi, unsigned char*& fo);
-	RevorbDef revorb = (RevorbDef)GetProcAddress(hRevorbDll, "revorb");
+	//HMODULE hRevorbDll = LoadLibrary(L"res\\librevorb.dll");
+	//typedef int (*RevorbDef)(unsigned char*& fi, unsigned char*& fo);
+	//RevorbDef revorb = (RevorbDef)GetProcAddress(hRevorbDll, "revorb");
 
 	std::vector<std::string> pkgPatchStreamPaths;
 	void getBlockTable();
