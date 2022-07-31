@@ -303,16 +303,12 @@ void Package::getBlockTable()
 				Block block = { 0, 0, 0, 0, 0 };
 				fseek(pkgFile, i, SEEK_SET);
 				fread((char*)&val, 1, 4, pkgFile);
-				val = swapUInt32Endianness(val);
-				block.offset = val;
+				block.offset = swapUInt32Endianness(val);
 				fread((char*)&val, 1, 4, pkgFile);
-				val = swapUInt32Endianness(val);
-				block.size = val;
+				block.size = swapUInt32Endianness(val);
 				fread((char*)&val16, 1, 2, pkgFile);
-				//val16 = swapUInt32Endianness(val16);
-				block.patchID = val16;
+				block.patchID = swapUInt32Endianness(val16);
 				fread((char*)&val16, 1, 2, pkgFile);
-				//val16 = swapUInt32Endianness(val16);
 				block.bitFlag = val16;
 				fseek(pkgFile, 0x14, SEEK_CUR); // SHA-1 Hash
 				blocks.push_back(block);
@@ -391,16 +387,16 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		size_t result;
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
-		unsigned char* decryptBuffer = NULL;
+		unsigned char* decryptBuffer = nullptr;
 		std::vector<unsigned char> realDecryptBuffer(currentBlock.size);
 		decryptBuffer = &realDecryptBuffer[0];
 
-		unsigned char* decompBuffer = NULL;
+		unsigned char* decompBuffer = nullptr;
 		std::vector<unsigned char> realDecompBuffer(BLOCK_SIZE);
 		decompBuffer = &realDecompBuffer[0];
 		if (options.d1)
 		{
-			
+
 			if (currentBlock.bitFlag & 0x1)
 				decompressBlock(currentBlock, blockBuffer, decompBuffer);
 			else
@@ -438,7 +434,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		}
 		fclose(pFile);
 		currentBlockID++;
-		delete[] decompBuffer;
+		std::fill(&decompBuffer[0], &decompBuffer[BLOCK_SIZE], 0);
 	}
 	return fileBuffer;
 }
@@ -482,9 +478,9 @@ bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::str
 		}
 		else
 		{
-			std::filesystem::create_directories(outputPath);
+			std::filesystem::create_directories(outputPath+"/wem/");
 			FILE* oFile;
-			std::string name = outputPath + "/" + Hambit + ".wem";
+			std::string name = outputPath + "/wem/" + Hambit + ".wem";
 			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
 			fclose(oFile);
@@ -614,7 +610,7 @@ void Package::extractFiles()
 		pkgPatchStreamPaths.push_back(pkgPatchPath);
 		std::cout << pkgPatchPath << "\n";
 	}
-	
+
 	std::vector<std::string> music_names;
 	if (options.musiconly)
 	{
@@ -636,22 +632,36 @@ void Package::extractFiles()
 		std::string nameID = entry.reference2;
 		if (entry.numType == wemType && entry.numSubType == wemSubType)
 		{
-			if (options.bnkonly == true)
+			if (options.bnkonly || options.unknown_only)
 				continue;
-			std::vector<std::string>::iterator a = std::find(music_names.begin(), music_names.end(), Hambit);
-			if (options.musiconly && a == music_names.end())
+			if (options.musiconly)
 			{
-				continue;
+				std::vector<std::string>::iterator a = std::find(music_names.begin(), music_names.end(), Hambit);
+				if(a == music_names.end())
+					continue;
+				music_names.erase(a);
 			}
-			music_names.erase(a);
 			getWem(i, outputPath, Hambit, nameID, entry);
 		}
 		else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
 		{
-			if (options.musiconly == true)
+			if (options.musiconly || options.unknown_only)
 				continue;
 			std::filesystem::create_directories(bnkOutputPath);
 			getBnk(i, bnkOutputPath, entry);
+		}
+		else
+		{
+			if (!options.unknown_only)
+				continue;
+			Hambit = boost::to_upper_copy(uint32ToHexStr(swapUInt32Endianness(hexStrToUint32(entry.reference))));
+			std::filesystem::create_directories(outputPath + "/" + Hambit);
+			std::string name = outputPath + "/" + Hambit + "/" + uint32ToHexStr(swapUInt32Endianness(hexStrToUint32(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i))))) + ".bin";
+			FILE* oFile;
+			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
+			fwrite(fileBuffer, entry.fileSize, 1, oFile);
+			fclose(oFile);
 		}
 	}
 	if (options.txtpgen)
@@ -806,7 +816,7 @@ std::string Package::getEntryReference(std::string hash)
 	return reference;
 }
 
-uint8_t Package::getEntryTypes(std::string hash, uint8_t &subType)
+uint8_t Package::getEntryTypes(std::string hash, uint8_t& subType)
 {
 	// Entry index
 	uint32_t id = hexStrToUint32(hash) % 8192;

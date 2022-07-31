@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 	sarge.setArgument("s", "singlefile", "single file", true);
 	sarge.setArgument("l", "pkgbackup", "backup pkg flag for single file export", true);
 	sarge.setArgument("g", "oggconv", "ogg conversion", false);
-	//sarge.setArgument("m", "gen_wem_hashmap", "generate a map of ginsorid to hashes", false);
+	sarge.setArgument("u", "unknown_only", "only unpacks non-wem and bnk files", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
@@ -82,9 +82,12 @@ int main(int argc, char** argv)
 
 	if (singleFileHash != "")
 	{
+
 		std::string pkgid;
 		Entry audioEntry;
 		bool bFound = false;
+		if ((singleFileHash.substr(6, 2) == "80" || singleFileHash.substr(6, 2) == "81") && backupId == "")
+			bFound = true;
 		if (backupId == "")
 		{
 			std::filesystem::path pkgsFolder{ packagesPath };
@@ -147,8 +150,103 @@ int main(int argc, char** argv)
 						pkgid = uint16ToHexStr(Pkg.header.pkgID);
 						std::cout << "Found in " + pkgid << "\n";
 						audioEntry = entry;
-						bFound = true;
-						break;
+						int wemType, wemSubType, bnkType, bnkSubType, bnkSubType2;
+						if (Pkg.options.preBL)
+						{
+							wemType = 26;
+							wemSubType = 6;
+							bnkType = 26;
+							bnkSubType = 5;
+							bnkSubType2 = 5;
+						}
+						else if (Pkg.options.d1)
+						{
+							wemType = 8;
+							wemSubType = 21;
+							bnkType = 0;
+							bnkSubType = 19;
+							bnkSubType2 = 20;
+						}
+						else
+						{
+							wemType = 26;
+							wemSubType = 7;
+							bnkType = 26;
+							bnkSubType = 6;
+							bnkSubType2 = 6;
+						}
+						unsigned char* data = nullptr;
+						std::string name = "";
+						FILE* oFile = nullptr;
+						if (outputPath == "")
+							outputPath = uint16ToHexStr(Pkg.header.pkgID);
+						std::filesystem::create_directories(outputPath);
+						std::string arg0 = argv[0];
+						std::string prepath;
+						if (entry.numType == wemType && entry.numSubType == wemSubType)
+						{
+							if (sarge.exists("hexid"))
+							{
+								name = outputPath + "/" + singleFileHash + ".wem";
+								if (sarge.exists("wavconv"))
+								{
+									oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+									fwrite(data, entry.fileSize, 1, oFile);
+									fclose(oFile);
+									if (arg0.find("/") == std::string::npos)
+										prepath = arg0.substr(0, arg0.find_last_of('\\'));
+									else
+										prepath = arg0.substr(0, arg0.find_last_of('/'));
+									std::string vgmstring = prepath + "\\res\\vgmstream\\vgmstream-cli.exe \"" + name + "\" -o \"" + outputPath + "/" + singleFileHash + ".wav\"";
+									std::cout << vgmstring << "\n";
+									system(vgmstring.c_str());
+									remove(name.c_str());
+								}
+								else
+								{
+									oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+									fwrite(data, entry.fileSize, 1, oFile);
+									fclose(oFile);
+								}
+							}
+							else
+							{
+								name = outputPath + "/" + std::to_string(hexStrToUint32(singleFileHash)) + ".wem";
+								if (sarge.exists("wavconv"))
+								{
+									oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+									fwrite(data, entry.fileSize, 1, oFile);
+									fclose(oFile);
+									std::string vgmstring = "res\\vgmstream\\vgmstream-cli.exe \"" + name + "\" -o \"" + outputPath + "/" + std::to_string(hexStrToUint32(singleFileHash)) + ".wav\"";
+									std::cout << vgmstring << "\n";
+									system(vgmstring.c_str());
+									remove(name.c_str());
+								}
+								else
+								{
+									oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+									fwrite(data, entry.fileSize, 1, oFile);
+									fclose(oFile);
+								}
+							}
+						}
+						else if (entry.numType == bnkType && (entry.numSubType == bnkSubType || entry.numSubType == bnkSubType2))
+						{
+							name = outputPath + "/" + getFileFromHash(singleFileHash) + ".bnk";
+							oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+							fwrite(data, entry.fileSize, 1, oFile);
+							fclose(oFile);
+						}
+						else
+						{
+							name = outputPath + "/" + singleFileHash + ".bin";
+							oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+							fwrite(data, entry.fileSize, 1, oFile);
+							fclose(oFile);
+						}
+
+
+						exit(0);
 					}
 				}
 				if (pkgid != "")
@@ -170,6 +268,7 @@ int main(int argc, char** argv)
 		pkg.options.preBL = boost::iequals(version, "prebl");
 		pkg.readHeader();
 		pkg.getEntryTable();
+
 		int wemType, wemSubType, bnkType, bnkSubType, bnkSubType2;
 		if (pkg.options.preBL)
 		{
@@ -196,7 +295,7 @@ int main(int argc, char** argv)
 			bnkSubType2 = 6;
 		}
 		int fileSize;
-		uint8_t t, st;
+		uint8_t t = 0, st = 0;
 		unsigned char* data = nullptr;
 		if (audioEntry.reference != "")
 		{
@@ -207,6 +306,7 @@ int main(int argc, char** argv)
 		}
 		else
 			data = pkg.getEntryData(singleFileHash, fileSize);
+		
 		FILE* oFile;
 		std::string name;
 		if (audioEntry.reference == "")
@@ -276,6 +376,13 @@ int main(int argc, char** argv)
 			fwrite(data, fileSize, 1, oFile);
 			fclose(oFile);
 		}
+		else
+		{
+			name = outputPath + "/" + singleFileHash + ".bin";
+			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
+			fwrite(data, fileSize, 1, oFile);
+			fclose(oFile);
+		}
 	}
 
 	else if (sarge.exists("folder"))
@@ -313,6 +420,10 @@ int main(int argc, char** argv)
 					if (dir_entry.path().string().find("_ru_") != std::string::npos)
 						continue;
 					if (dir_entry.path().string().find("_sp_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_cs_") != std::string::npos)
+						continue;
+					if (dir_entry.path().string().find("_ct_") != std::string::npos)
 						continue;
 					pkgidf = pkgidfolder;
 					if (dir_entry.path().string().find("_unp") != std::string::npos)
@@ -360,6 +471,7 @@ int main(int argc, char** argv)
 			options.preBL = boost::iequals(version, "prebl");
 			options.bnkonly = sarge.exists("bnkonly");
 			options.musiconly = sarge.exists("music_only");
+			options.unknown_only = sarge.exists("unknown_only");
 			
 			Pkg.options = options;
 				
@@ -382,6 +494,7 @@ int main(int argc, char** argv)
 		options.preBL = boost::iequals(version, "prebl");
 		options.bnkonly = sarge.exists("bnkonly");
 		options.musiconly = sarge.exists("music_only");
+		options.unknown_only = sarge.exists("unknown_only");
 
 		Pkg.options = options;
 

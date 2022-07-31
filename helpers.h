@@ -31,4 +31,5 @@ struct PackageOptions
 	bool preBL = false;
 	bool bnkonly = false;
 	bool musiconly = false;
+	bool unknown_only = false;
 };
