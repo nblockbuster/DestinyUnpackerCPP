@@ -398,6 +398,7 @@ int main(int argc, char** argv)
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
+				/*
 				if (dir_entry.path().string().find("audio") != std::string::npos || boost::iequals(version, "d1"))
 				{
 					//skip probably unwanted dialogue
@@ -439,7 +440,9 @@ int main(int argc, char** argv)
 				}
 				else
 					continue;
-				/*
+				*/
+				if (dir_entry.path().string().find("audio") != std::string::npos)
+					continue;
 				pkgidf = pkgidfolder;
 				if (dir_entry.path().string().find("_unp") != std::string::npos)
 				{
@@ -451,7 +454,6 @@ int main(int argc, char** argv)
 				}
 				pkgf.push_back(pkgidf);
 				existingPkgIDS.insert(pkgidf);
-				*/
 			}
 		}
 		for (int o = 0; o < existingPkgIDS.size(); o++)
@@ -476,6 +478,7 @@ int main(int argc, char** argv)
 			Pkg.options = options;
 				
 			Pkg.Unpack();
+			fclose(Pkg.pkgFile);
 		}
 	}
 

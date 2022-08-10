@@ -407,7 +407,10 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 			if (currentBlock.bitFlag & 0x2)
 				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
 			else
+			{
 				decryptBuffer = blockBuffer;
+				delete[] blockBuffer;
+			}
 			if (currentBlock.bitFlag & 0x1)
 				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
 			else
@@ -628,6 +631,8 @@ void Package::extractFiles()
 	for (int i = 0; i < entries.size(); i++)
 	{
 		Entry entry = entries[i];
+		if (entry.fileSize == 0)
+			continue;
 		std::string Hambit = boost::to_upper_copy(entry.reference);
 		std::string nameID = entry.reference2;
 		if (entry.numType == wemType && entry.numSubType == wemSubType)
@@ -662,6 +667,7 @@ void Package::extractFiles()
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
 			fclose(oFile);
+			delete[] fileBuffer;
 		}
 	}
 	if (options.txtpgen)
@@ -717,7 +723,7 @@ void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned cha
 	BCryptDestroyKey(hAesKey);
 	BCryptCloseAlgorithmProvider(hAesAlg, 0);
 
-	std::fill(&blockBuffer[0], &blockBuffer[block.size], 0);
+	delete[] blockBuffer;
 }
 
 void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer)
