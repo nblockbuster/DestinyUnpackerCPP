@@ -18,20 +18,21 @@ Requires [Sarge](https://github.com/MayaPosch/Sarge) & [Boost](https://www.boost
 "\[exe file name] -p \[path to packages folder] -i \[package id]"  
  · For example, using the unpacker with Pre-BL packages, one might enter: `DestinyUnpackerCPP.exe -p "D:/Shadowkeep/packages" -i 0242 -v prebl`
 
--p "path" - follow this with the filepath of the packages folder within your Destiny 2 install directory.  
+`-p` "path" - follow this with the filepath of the packages folder within your Destiny 2 install directory.  
 
--i "input" - follow this with the package you want to unpack.  
-Being more or less specific packages changes what is unpacked. For example 02f6_4 will unpack one package where 02f6 will unpack packages "02f6_3", "02f6_4" and "02f6_5".
+`-i` "input" - follow this with the package you want to unpack.  
 
-Additional optional commands:
--w - Converts wem files to **w**av files.  
--h - **h**exID - Generates files named with a hexID. Much easier for sorting if you know how.  
+Additional arguments:  
+
+`-w` \- Converts wem files to wav files.  
+`-h` \- hex id - Generates files named with a hex id. Much easier for sorting if you know how.  
 You can combine this with other commands to generate hexID-named of a given type.  
--t - Generates **t**xtp files from the soundbanks in that package. "The way I see it it's a file referencing the actual wems, and telling vgmstream how to play them in what order."  
--o - Specify an output folder.  
--v - Change which version of destiny to extract from. (Valid inputs: d1, prebl)  
--f - Tells the unpacker to unpack all of the packages in the packages path.  
--m - Only extracts music files (Needs OSTs.db file in the same folder as exe)
+`-t` \- Generates txtp files from the soundbanks in that package. "The way I see it it's a file referencing the actual wems, and telling vgmstream how to play them in what order."  
+`-o` \- Specify an output folder.  
+`-v` \- Change which version of destiny to extract from. (Valid inputs: d1, prebl)  
+`-f` \- Tells the unpacker to unpack all of the packages in the packages path.  
+`-m` \- Only extracts music files (Needs OSTs.db file in the same folder as exe)
+`-u` \- Only extracts unknown files (anything that isnt a wem or bnk)  
 
 -----
 
