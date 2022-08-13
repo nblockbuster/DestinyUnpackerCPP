@@ -661,7 +661,7 @@ void Package::extractFiles()
 				continue;
 			Hambit = boost::to_upper_copy(entry.reference);
 			std::filesystem::create_directories(outputPath + "/" + Hambit);
-			std::string name = outputPath + "/" + Hambit + "/" + uint32ToHexStr(hexStrToUint32(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)))) + ".bin";
+			std::string name = outputPath + "/" + Hambit + "/" + getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)) + ".bin";
 			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			FILE* oFile;
 			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
