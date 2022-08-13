@@ -397,8 +397,8 @@ int main(int argc, char** argv)
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
-				if (dir_entry.path().string().find("tower") == std::string::npos)
-					continue;
+				//if (dir_entry.path().string().find("tower") == std::string::npos)
+					//continue;
 				/*
 				if (dir_entry.path().string().find("audio") != std::string::npos || boost::iequals(version, "d1"))
 				{
