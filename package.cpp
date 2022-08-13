@@ -542,8 +542,8 @@ bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::str
 bool Package::getBnk(int i, std::string bnkOutputPath, Entry entry)
 {
 	unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
-	FILE* oFile;
 	std::string name = bnkOutputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
+	FILE* oFile;
 	oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 	fwrite(fileBuffer, entry.fileSize, 1, oFile);
 	fclose(oFile);
@@ -642,7 +642,7 @@ void Package::extractFiles()
 			if (options.musiconly)
 			{
 				std::vector<std::string>::iterator a = std::find(music_names.begin(), music_names.end(), Hambit);
-				if(a == music_names.end())
+				if (a == music_names.end())
 					continue;
 				music_names.erase(a);
 			}
@@ -662,9 +662,9 @@ void Package::extractFiles()
 			Hambit = boost::to_upper_copy(uint32ToHexStr(swapUInt32Endianness(hexStrToUint32(entry.reference))));
 			std::filesystem::create_directories(outputPath + "/" + Hambit);
 			std::string name = outputPath + "/" + Hambit + "/" + uint32ToHexStr(swapUInt32Endianness(hexStrToUint32(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i))))) + ".bin";
+			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			FILE* oFile;
 			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
-			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
 			fclose(oFile);
 			delete[] fileBuffer;
@@ -762,7 +762,8 @@ bool Package::Unpack()
 	modifyNonce();
 	getEntryTable();
 	getBlockTable();
-	fclose(pkgFile);
+	if (pkgFile != nullptr)
+		fclose(pkgFile);
 	extractFiles();
 
 	entries.clear();

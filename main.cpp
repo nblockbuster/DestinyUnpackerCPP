@@ -393,7 +393,6 @@ int main(int argc, char** argv)
 		std::vector<std::string> pkgf;
 		for (auto const& dir_entry : std::filesystem::directory_iterator{ pkgsFolder })
 		{
-			std::string pkgidf;
 			std::string pkgidfolder = dir_entry.path().string();
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
@@ -441,22 +440,21 @@ int main(int argc, char** argv)
 				else
 					continue;
 				*/
-				if (dir_entry.path().string().find("audio") != std::string::npos)
-					continue;
-				pkgidf = pkgidfolder;
-				if (dir_entry.path().string().find("_unp") != std::string::npos)
+				if ((sarge.exists("music_only") || sarge.exists("bnkonly"))
+					&& dir_entry.path().string().find("audio") == std::string::npos)
 				{
-					std::string tt;
-					tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
-					std::replace(tt.begin(), tt.end(), '\\', '/');
-					tt = dir_entry.path().string().substr(tt.find_last_of('/'));
-					pkgidf = tt.substr(1);
+					continue;
 				}
+				std::string pkgidf = pkgidfolder;
+				std::string tt;
+				tt = dir_entry.path().string().substr(0, dir_entry.path().string().size() - 6);
+				std::replace(tt.begin(), tt.end(), '\\', '/');
+				pkgidf = tt.substr(tt.find_last_of('/')).substr(1);
 				pkgf.push_back(pkgidf);
-				existingPkgIDS.insert(pkgidf);
+				existingPkgIDS.insert(pkgidfolder);
 			}
 		}
-		for (int o = 0; o < existingPkgIDS.size(); o++)
+		for (int o = 0; o < pkgf.size(); o++)
 		{
 			std::cout << pkgf[o] << "\n";
 
@@ -478,7 +476,8 @@ int main(int argc, char** argv)
 			Pkg.options = options;
 				
 			Pkg.Unpack();
-			fclose(Pkg.pkgFile);
+			//if (Pkg.pkgFile != nullptr)
+				//fclose(Pkg.pkgFile);
 		}
 	}
 
