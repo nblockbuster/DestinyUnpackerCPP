@@ -441,7 +441,7 @@ int main(int argc, char** argv)
 				else
 					continue;
 				*/
-				if ((sarge.exists("music_only") || sarge.exists("bnkonly"))
+				if ((sarge.exists("music_only") || sarge.exists("bnkonly") || !sarge.exists("u"))
 					&& dir_entry.path().string().find("audio") == std::string::npos)
 				{
 					continue;

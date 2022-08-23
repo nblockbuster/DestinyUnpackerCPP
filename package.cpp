@@ -744,7 +744,7 @@ void Package::decryptBlock(Block block, unsigned char* blockBuffer, unsigned cha
 	BCryptDestroyKey(hAesKey);
 	BCryptCloseAlgorithmProvider(hAesAlg, 0);
 
-	delete[] blockBuffer;
+	std::fill(&blockBuffer[0], &blockBuffer[block.size], 0);
 }
 
 void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer)
