@@ -32,4 +32,5 @@ struct PackageOptions
 	bool bnkonly = false;
 	bool musiconly = false;
 	bool unknown_only = false;
+	bool xxh_hashes = false;
 };

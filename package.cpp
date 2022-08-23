@@ -370,7 +370,7 @@ void Package::modifyNonce()
 unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths)
 {
 	Entry entry = entries[i];
-
+	//std::cout << std::to_string(i) << "\n";
 	int currentBlockID = entry.startingBlock;
 	int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 	if (entry.fileSize == 0) blockCount = 0; // Stupid check for weird C++ floor behaviour
@@ -383,7 +383,11 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		FILE* pFile;
 		pFile = _fsopen(pkgPatchStreamPaths[currentBlock.patchID].c_str(), "rb", _SH_DENYNO);
 		fseek(pFile, currentBlock.offset, SEEK_SET);
-		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+
+		unsigned char* blockBuffer = { 0 };
+		std::vector<unsigned char> realblockBuffer(currentBlock.size);
+		blockBuffer = &realblockBuffer[0];
+
 		size_t result;
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
@@ -409,7 +413,9 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 			else
 			{
 				decryptBuffer = blockBuffer;
-				delete[] blockBuffer;
+				//delete[] blockBuffer;
+				//blockBuffer = { 0 };
+				//std::fill(&blockBuffer[0], &blockBuffer[currentBlock.size], 0);
 			}
 			if (currentBlock.bitFlag & 0x1)
 				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
@@ -437,7 +443,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 		}
 		fclose(pFile);
 		currentBlockID++;
-		std::fill(&decompBuffer[0], &decompBuffer[BLOCK_SIZE], 0);
+		std::fill(&decompBuffer[0], &decompBuffer[sizeof(decompBuffer)], 0);
 	}
 	return fileBuffer;
 }
@@ -445,6 +451,15 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::string nameID, Entry entry)
 {
 	unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
+
+	if (options.xxh_hashes)
+	{
+		XXH64_hash_t hash = XXH3_64bits(fileBuffer, entry.fileSize);
+		HashMap["wem"][Hambit] = hash;
+		delete[] fileBuffer;
+		return true;
+	}
+
 	std::string wavOutput = outputPath + "/wav";
 	std::string oggOutput = outputPath + "/ogg";
 	if (options.hexid) {
@@ -531,10 +546,7 @@ bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::str
 
 		}
 	}
-	//XXH64_hash_t hash = XXH3_64bits(fileBuffer, entry.fileSize);
-	//XXH64_hash_t hash = XXH64(fileBuffer, entry.fileSize, 0);
-	//xxh::hash_t<64> hash = xxh::xxhash<64>(fileBuffer);
-	//WemHashMap[Hambit] = hash;
+
 	delete[] fileBuffer;
 	return true;
 }
@@ -547,6 +559,13 @@ bool Package::getBnk(int i, std::string bnkOutputPath, Entry entry)
 	oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 	fwrite(fileBuffer, entry.fileSize, 1, oFile);
 	fclose(oFile);
+
+	if (options.xxh_hashes)
+	{
+		XXH64_hash_t hash = XXH3_64bits(fileBuffer, entry.fileSize);
+		HashMap["bnk"][boost::to_upper_copy(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)))] = hash;
+	}
+
 	delete[] fileBuffer;
 	return true;
 }
@@ -599,11 +618,6 @@ void Package::extractFiles()
 	std::string out = options.outPathBase;// + uint16ToHexStr(header.pkgID);
 	std::filesystem::create_directories(options.outPathBase);
 	std::string outputPath = out;
-
-	//std::vector<std::string> pkgPatchStreamPaths;
-	//std::string outputPath = CUSTOM_DIR + uint16ToHexStr(header.pkgID);
-	//std::filesystem::create_directories(outputPath);
-
 
 	// Initialising the required file streams
 	for (int i = 0; i <= header.patchID; i++)
@@ -667,6 +681,13 @@ void Package::extractFiles()
 			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
 			fclose(oFile);
+
+			if (options.xxh_hashes)
+			{
+				XXH64_hash_t hash = XXH3_64bits(fileBuffer, entry.fileSize);
+				HashMap["unk"][boost::to_upper_copy(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)))] = hash;
+			}
+
 			delete[] fileBuffer;
 		}
 	}

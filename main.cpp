@@ -46,6 +46,7 @@ int main(int argc, char** argv)
 	sarge.setArgument("l", "pkgbackup", "backup pkg flag for single file export", true);
 	sarge.setArgument("g", "oggconv", "ogg conversion", false);
 	sarge.setArgument("u", "unknown_only", "only unpacks non-wem and bnk files", false);
+	sarge.setArgument("x", "hashgen", "generates XXH3-64 hash values of the files", false);
 	sarge.setDescription("Destiny 2 C++ Unpacker by Monteven. Modified for D1 & Pre-BL, and to export wems and txtp files by nblock with help from Philip and HighRTT.");
 	sarge.setUsage("DestinyUnpackerCPP");
 
@@ -397,8 +398,6 @@ int main(int argc, char** argv)
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 			if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
 			{
-				//if (dir_entry.path().string().find("tower") == std::string::npos)
-					//continue;
 				/*
 				if (dir_entry.path().string().find("audio") != std::string::npos || boost::iequals(version, "d1"))
 				{
@@ -456,6 +455,7 @@ int main(int argc, char** argv)
 				existingPkgIDS.insert(pkgidfolder);
 			}
 		}
+		std::unordered_map<std::string, std::unordered_map<std::string, XXH64_hash_t>> masterHashMap;
 		for (int o = 0; o < pkgf.size(); o++)
 		{
 			std::cout << pkgf[o] << "\n";
@@ -474,12 +474,136 @@ int main(int argc, char** argv)
 			options.bnkonly = sarge.exists("bnkonly");
 			options.musiconly = sarge.exists("music_only");
 			options.unknown_only = sarge.exists("unknown_only");
-			
+			options.xxh_hashes = sarge.exists("hashgen");
+			Pkg.HashMap = masterHashMap;
+
 			Pkg.options = options;
 				
 			Pkg.Unpack();
-			//if (Pkg.pkgFile != nullptr)
-				//fclose(Pkg.pkgFile);
+			masterHashMap = Pkg.HashMap;
+			std::cout << "aaa\n";
+		}
+
+		if (sarge.exists("hashgen"))
+		{
+			std::unordered_map<std::string, std::unordered_map<std::string, XXH64_hash_t>> old_masterHashMap;
+			std::vector<std::string> diff_Hashes;
+			std::string compare = "";
+			std::cout << "Compare? (Y/n)";
+			std::cin >> compare;
+			if (compare == "y" || compare == "Y" || compare == "")
+			{
+				FILE* old_hashes_file = nullptr;
+				old_hashes_file = _fsopen("hashes_4_1_0.bin", "rb", _SH_DENYNO);
+				if (old_hashes_file == nullptr) {
+					std::perror("Error opening hashes file");
+					exit(1);
+				}
+				int8_t type = -1;
+				fseek(old_hashes_file, 0, SEEK_SET);
+				fread((char*)&type, 1, 1, old_hashes_file);
+				uint32_t table_size = 0;
+				fread((char*)&table_size, 1, 4, old_hashes_file);
+				uint32_t file_name = 0;
+				uint64_t hash_value = 0;
+
+
+				switch (type)
+				{
+				case 'w':
+					for (int i = 0; i < table_size * 0xC; i += 0xC)
+					{
+						fread((char*)&file_name, 1, 4, old_hashes_file);
+						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						old_masterHashMap["wem"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
+					}
+					break;
+				case 'b':
+					for (int i = 0; i < table_size * 0xC; i += 0xC)
+					{
+						fread((char*)&file_name, 1, 4, old_hashes_file);
+						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						old_masterHashMap["bnk"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
+					}
+					break;
+				case 'u':
+					for (int i = 0; i < table_size * 0xC; i += 0xC)
+					{
+						fread((char*)&file_name, 1, 4, old_hashes_file);
+						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						old_masterHashMap["unk"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
+					}
+					break;
+				default:
+					std::cerr << "Unrecognized type.";
+					exit(3);
+				}
+				fclose(old_hashes_file);
+			}
+			FILE* hashes_file = nullptr;
+			hashes_file = _fsopen("hashes", "wb", _SH_DENYNO);
+			if (hashes_file == nullptr) {
+				std::perror("Error opening hashes file");
+				exit(1);
+			}
+			for (auto& element : masterHashMap)
+			{
+				if (sarge.exists("hashgen"))
+				{
+					for (auto& old_element : old_masterHashMap)
+					{
+						for (auto& sub_element : element.second)
+						{
+							for (auto& old_sub_element : old_element.second)
+							{
+								if (sub_element.first == old_sub_element.first && (sub_element.second != old_sub_element.second))
+								{
+									diff_Hashes.push_back(sub_element.first);
+									std::cout << "OLD | " << old_sub_element.first << " : " << old_sub_element.second << '\n';
+									std::cout << "NEW | " << sub_element.first << " : " << sub_element.second << '\n' << '\n';
+								}
+							}
+						}
+					}
+				}
+
+				if (sarge.exists("hashgen"))
+				{
+					std::ofstream fst("differing_hashes.txt");
+					std::ostream_iterator<std::string> output_iterator(fst, "\n");
+					std::copy(diff_Hashes.begin(), diff_Hashes.end(), output_iterator);
+					fst.close();
+				}
+
+				if (element.first == "wem")
+				{
+					fwrite("w", 1, 1, hashes_file);
+					uint32_t size = masterHashMap["wem"].size();
+					fwrite(&size, 1, 4, hashes_file);
+				}
+				if (element.first == "bnk")
+				{
+					fwrite("b", 1, 1, hashes_file);
+					uint32_t size = masterHashMap["bnk"].size();
+					fwrite(&size, 1, 4, hashes_file);
+				}
+				if (element.first == "unk")
+				{
+					fwrite("u", 1, 1, hashes_file);
+					uint32_t size = masterHashMap["unk"].size();
+					fwrite(&size, 1, 4, hashes_file);
+				}
+				for (auto& sub_element : element.second)
+				{
+					std::cout << element.first << " with hash/id " + sub_element.first + " has XXH64 hash value " + boost::to_upper_copy(uint64ToHexStr(sub_element.second)) << "\n";
+					uint32_t write_hash = hexStrToUint32(sub_element.first);
+					fwrite(&write_hash, 1, 4, hashes_file);
+					fwrite((char*)&sub_element.second, 1, 8, hashes_file);
+
+				}
+			}
+
+			fclose(hashes_file);
 		}
 	}
 
@@ -499,32 +623,50 @@ int main(int argc, char** argv)
 		options.bnkonly = sarge.exists("bnkonly");
 		options.musiconly = sarge.exists("music_only");
 		options.unknown_only = sarge.exists("unknown_only");
+		options.xxh_hashes = sarge.exists("hashgen");
 
 		Pkg.options = options;
 
 		Pkg.Unpack();
 		
-		/*
-		if (sarge.exists("gen_wem_hashmap"))
+		if (sarge.exists("hashgen"))
 		{
-			FILE* wem_hashes_file = nullptr;
-			wem_hashes_file = _fsopen("wem_hashes", "wb", _SH_DENYNO);
-			if (wem_hashes_file == nullptr) {
+			FILE* hashes_file = nullptr;
+			hashes_file = _fsopen("hashes", "wb", _SH_DENYNO);
+			if (hashes_file == nullptr) {
 				std::perror("buh");
 				exit(1);
 			}
-			uint32_t wemsize = Pkg.WemHashMap.size();
-			fwrite(&wemsize, 1, 4, wem_hashes_file);
-			for (auto& element : Pkg.WemHashMap)
+			for (auto& element : Pkg.HashMap)
 			{
-				std::cout << "Wem with GinsorID " + element.first + " has XXH64 hash value " + std::to_string(element.second) << "\n";
-				uint32_t ginsid = hexStrToUint32(element.first);
-				fwrite(&ginsid, 1, 4, wem_hashes_file);
-				fwrite((char*)&element.second, 1, 8, wem_hashes_file);
+				if (element.first == "wem")
+				{
+					fwrite("w", 1, 1, hashes_file);
+					uint16_t size = Pkg.HashMap["wem"].size();
+					fwrite(&size, 1, 2, hashes_file);
+				}
+				if (element.first == "bnk")
+				{
+					fwrite("b", 1, 1, hashes_file);
+					uint16_t size = Pkg.HashMap["bnk"].size();
+					fwrite(&size, 1, 2, hashes_file);
+				}
+				if (element.first == "unk")
+				{
+					fwrite("u", 1, 1, hashes_file);
+					uint16_t size = Pkg.HashMap["unk"].size();
+					fwrite(&size, 1, 2, hashes_file);
+				}
+				for (auto& sub_element : element.second)
+				{
+					std::cout << element.first << " with hash/id " + sub_element.first + " has XXH64 hash value " + boost::to_upper_copy(uint64ToHexStr(sub_element.second)) << "\n";
+					uint32_t write_hash = hexStrToUint32(sub_element.first);
+					fwrite(&write_hash, 1, 4, hashes_file);
+					fwrite((char*)&sub_element.second, 1, 8, hashes_file);
+				}
 			}
-			fclose(wem_hashes_file);
+			fclose(hashes_file);
 		}
-		*/
 	}
 	return 0;
 }

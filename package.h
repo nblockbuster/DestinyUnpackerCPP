@@ -15,10 +15,7 @@
 #include <unordered_map>
 #include <boost/algorithm/string.hpp>
 #include "E:/ww2ogg/src/wwriff.h"
-
-//I might reuse these later, for checking stealthily updated wem/bnks, and built in revorb
-
-//#include "D:\vcpkg\packages\xxhash_x64-windows\include\xxh3.h"
+#include "D:\vcpkg\packages\xxhash_x64-windows\include\xxh3.h"
 
 //extern "C"
 //{
@@ -105,23 +102,15 @@ public:
 	std::string packagesPath;
 	std::string packagePath;
 	std::string packageName;
-	//std::string outPathBase;
 	std::string version;
-	//bool preBL = false;
-	//bool d1 = false;
-	//bool bnkonly = false;
 	bool d1prebl = false;
-	//bool txtpgen;
-	//bool hexid;
-	//bool wavconv;
-	//bool oggconv;
 	PackageOptions options;
 
 	bool ps3_x360 = false;
 
 	PkgHeader header;
 	std::vector<Entry> entries;
-	//std::unordered_map<std::string, XXH64_hash_t> WemHashMap;
+	std::unordered_map<std::string, std::unordered_map<std::string, XXH64_hash_t>> HashMap;
 
 	// Constructor
 	Package(std::string packageID, std::string pkgsPath, bool prebl_d1);
