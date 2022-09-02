@@ -441,8 +441,7 @@ int main(int argc, char** argv)
 				else
 					continue;
 				*/
-				if ((sarge.exists("music_only") || sarge.exists("bnkonly") || !sarge.exists("u"))
-					&& dir_entry.path().string().find("audio") == std::string::npos)
+				if ((sarge.exists("music_only") || sarge.exists("u")) && dir_entry.path().string().find("audio") == std::string::npos)
 				{
 					continue;
 				}
@@ -481,7 +480,7 @@ int main(int argc, char** argv)
 				
 			Pkg.Unpack();
 			masterHashMap = Pkg.HashMap;
-			std::cout << "aaa\n";
+			//std::cout << "aaa\n";
 		}
 
 		if (sarge.exists("hashgen"))

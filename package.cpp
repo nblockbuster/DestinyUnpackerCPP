@@ -658,7 +658,8 @@ void Package::extractFiles()
 				std::vector<std::string>::iterator a = std::find(music_names.begin(), music_names.end(), Hambit);
 				if (a == music_names.end())
 					continue;
-				music_names.erase(a);
+				else if (a != music_names.end())
+					music_names.erase(a);
 			}
 			getWem(i, outputPath, Hambit, nameID, entry);
 		}
