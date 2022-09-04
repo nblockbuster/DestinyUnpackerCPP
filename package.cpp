@@ -170,7 +170,11 @@ bool Package::readHeader()
 			fseek(pkgFile, 0xD0, SEEK_SET);
 			fread((char*)&header.blockTableSize, 1, 4, pkgFile);
 
-			header.blockTableOffset = header.entryTableOffset + header.entryTableSize * 16 + 32;
+			//header.blockTableOffset = header.entryTableOffset + header.entryTableSize * 16 + 32;
+			fseek(pkgFile, (header.entryTableOffset - 96 + 0x28), SEEK_SET);
+			fread((char*)&header.blockTableOffset, 1, 4, pkgFile);
+
+			header.blockTableOffset = header.entryTableOffset - 96 + 0x28 + header.blockTableOffset + 0x10;
 		}
 	}
 	else
@@ -367,10 +371,9 @@ void Package::modifyNonce()
 	}
 }
 
-unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths)
+unsigned char* Package::genericExtract(std::vector<std::string> pkgPatchStreamPaths, int i)
 {
 	Entry entry = entries[i];
-	//std::cout << std::to_string(i) << "\n";
 	int currentBlockID = entry.startingBlock;
 	int blockCount = floor((entry.startingBlockOffset + entry.fileSize - 1) / BLOCK_SIZE);
 	if (entry.fileSize == 0) blockCount = 0; // Stupid check for weird C++ floor behaviour
@@ -450,7 +453,7 @@ unsigned char* Package::genericExtract(int i, std::vector<std::string> pkgPatchS
 
 bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::string nameID, Entry entry)
 {
-	unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
+	unsigned char* fileBuffer = genericExtract(pkgPatchStreamPaths, i);
 
 	if (options.xxh_hashes)
 	{
@@ -475,6 +478,16 @@ bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::str
 			std::cout << vgmstring << "\n";
 			system(vgmstring.c_str());
 			std::filesystem::remove(name);
+			//HMODULE convertwem_lib = LoadLibrary(L"convert_wem.dll");
+			//typedef int (*ConvertWemDef)(uint8_t* data, int length, const char* outputFolder, const char* outputName);
+			//ConvertWemDef ConvertWem = (ConvertWemDef)GetProcAddress(convertwem_lib, "ConvertWem");
+
+			//int wavFileSize;
+			//ConvertWem(fileBuffer, entry.fileSize, "TEMP_TEST_FOLDER", Hambit.c_str());
+
+			//oFile = _fsopen("temp.wav", "wb", _SH_DENYNO);
+			//fwrite(wav_data, 1, sizeof(wav_data), oFile);
+			//fclose(oFile);
 		}
 		else if (options.oggconv)
 		{
@@ -553,7 +566,7 @@ bool Package::getWem(int i, std::string outputPath, std::string Hambit, std::str
 
 bool Package::getBnk(int i, std::string bnkOutputPath, Entry entry)
 {
-	unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
+	unsigned char* fileBuffer = genericExtract(pkgPatchStreamPaths, i);
 	std::string name = bnkOutputPath + "/" + uint16ToHexStr(header.pkgID) + "-" + uint16ToHexStr(i) + ".bnk";
 	FILE* oFile;
 	oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
@@ -676,8 +689,8 @@ void Package::extractFiles()
 				continue;
 			Hambit = boost::to_upper_copy(entry.reference);
 			std::filesystem::create_directories(outputPath + "/" + Hambit);
-			std::string name = outputPath + "/" + Hambit + "/" + getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i)) + ".bin";
-			unsigned char* fileBuffer = genericExtract(i, pkgPatchStreamPaths);
+			std::string name = outputPath + "/" + Hambit + "/" + boost::to_upper_copy(getHashFromFile(uint16ToHexStr(header.pkgID), uint16ToHexStr(i))) + ".bin";
+			unsigned char* fileBuffer = genericExtract(pkgPatchStreamPaths, i);
 			FILE* oFile;
 			oFile = _fsopen(name.c_str(), "wb", _SH_DENYNO);
 			fwrite(fileBuffer, entry.fileSize, 1, oFile);
@@ -911,6 +924,14 @@ unsigned char* Package::getEntryData(std::string hash, int& fileSize)
 	}
 	modifyNonce();
 
+	for (int i = 0; i <= header.patchID; i++)
+	{
+		std::string pkgPatchPath = packagePath;
+		pkgPatchPath[pkgPatchPath.size() - 5] = char(i + 48);
+		pkgPatchStreamPaths.push_back(pkgPatchPath);
+		std::cout << pkgPatchPath << "\n";
+	}
+
 	unsigned char* buffer = getBufferFromEntry(entry);
 	fclose(pkgFile);
 	return buffer;
@@ -1099,40 +1120,42 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 		pFile = _fsopen(packagePath.c_str(), "rb", _SH_DENYNO);
 
 		fseek(pFile, currentBlock.offset, SEEK_SET);
-		unsigned char* blockBuffer = new unsigned char[currentBlock.size];
+		unsigned char* blockBuffer = { 0 };
+		std::vector<unsigned char> realblockBuffer(currentBlock.size);
+		blockBuffer = &realblockBuffer[0];
+
 		size_t result;
 		result = fread(blockBuffer, 1, currentBlock.size, pFile);
 		if (result != currentBlock.size) { fputs("Reading error", stderr); exit(3); }
-
-		unsigned char* decryptBuffer = NULL;
+		unsigned char* decryptBuffer = nullptr;
 		std::vector<unsigned char> realDecryptBuffer(currentBlock.size);
 		decryptBuffer = &realDecryptBuffer[0];
 
-		unsigned char* decompBuffer = NULL;
+		unsigned char* decompBuffer = nullptr;
 		std::vector<unsigned char> realDecompBuffer(BLOCK_SIZE);
 		decompBuffer = &realDecompBuffer[0];
-
-		if (!options.d1)
-		{
-			if (currentBlock.bitFlag & 0x2)
-				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
-			else
-				decryptBuffer = blockBuffer;
-
-			if (currentBlock.bitFlag & 0x1)
-				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
-			else
-				decompBuffer = decryptBuffer;
-		}
 		if (options.d1)
 		{
+
 			if (currentBlock.bitFlag & 0x1)
 				decompressBlock(currentBlock, blockBuffer, decompBuffer);
 			else
 				decompBuffer = blockBuffer;
 		}
-
-		if (currentBlockID == 0)
+		else
+		{
+			if (currentBlock.bitFlag & 0x2)
+				decryptBlock(currentBlock, blockBuffer, decryptBuffer);
+			else
+			{
+				decryptBuffer = blockBuffer;
+			}
+			if (currentBlock.bitFlag & 0x1)
+				decompressBlock(currentBlock, decryptBuffer, decompBuffer);
+			else
+				decompBuffer = decryptBuffer;
+		}
+		if (currentBlockID == entry.startingBlock)
 		{
 			size_t cpySize;
 			if (currentBlockID == blockCount)
@@ -1151,10 +1174,9 @@ unsigned char* Package::getBufferFromEntry(Entry entry)
 			memcpy(fileBuffer + currentBufferOffset, decompBuffer, BLOCK_SIZE);
 			currentBufferOffset += BLOCK_SIZE;
 		}
-
 		fclose(pFile);
 		currentBlockID++;
-		delete[] decompBuffer;
+		std::fill(&decompBuffer[0], &decompBuffer[sizeof(decompBuffer)], 0);
 	}
 	blocks.clear();
 	return fileBuffer;

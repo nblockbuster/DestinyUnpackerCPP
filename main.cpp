@@ -7,7 +7,6 @@
 #include <stdint.h>
 #include "Sarge/src/sarge.cpp"
 #include <stdio.h>
-//#include <chrono>
 
 // Using Sarge to parse command line args: https://mayaposch.wordpress.com/2019/03/17/parsing-command-line-arguments-in-c/
 // Also requires the Boost library for easiest way of capitalizing a hash

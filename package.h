@@ -93,7 +93,7 @@ private:
 	void extractFiles();
 	void decryptBlock(Block block, unsigned char* blockBuffer, unsigned char* &decryptBuffer);
 	void decompressBlock(Block block, unsigned char* decryptBuffer, unsigned char*& decompBuffer);
-	unsigned char* genericExtract(int i, std::vector<std::string> pkgPatchStreamPaths);
+	unsigned char* genericExtract(std::vector<std::string> pkgPatchStreamPaths, int i);
 	//bool Extract(std::vector<Entry> entries, int i, int wemType, int wemSubType, int bnkType, int bnkSubType, int bnkSubType2, std::string wavOutput, std::vector<std::string> pkgPatchStreamPaths, std::string outputPath, std::string bnkOutputPath);
 	bool getWem(int i, std::string outputPath, std::string Hambit, std::string nameID, Entry entry);
 	bool getBnk(int i, std::string bnkOutputPath, Entry entry);
