@@ -293,7 +293,7 @@ void Package::decompressBlock(Block block, unsigned char* decryptBuffer, unsigne
 
 bool Package::initOodle()
 {
-	hOodleDll = LoadLibrary(L"oo2core_8_win64.dll");
+	hOodleDll = LoadLibrary(L"oo2core_9_win64.dll");
 	if (hOodleDll == nullptr) {
 		return false;
 	}
