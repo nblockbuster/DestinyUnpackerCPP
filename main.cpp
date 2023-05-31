@@ -14,20 +14,20 @@
 static void show_usage()
 {
 	std::cerr << "Usage: DestinyUnpackerCPP.exe -p [packages path] -i [package id] -o [output path] -v [version] -w -h -t -f\n"
-		<< "-w converts wem audio to standard wav\n"
-		<< "-h names the audio with hexadecimal, to make it easier to read\n"
-		<< "-f extracts from all the packages in the packages path\n"
-		<< "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
-		<< "-m extracts only music audio files\n"
-		<< "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
-		<< "-b extracts ONLY .bnk files\n"
-		<< "-s [hash/ginsorid] extracts a single file, given it's hash/ginsorid\n"
-		<< "-l [backup package id] for use with -s, if you already know the package its in\n"
-		<< "-g converts to ogg"
-		<< std::endl;
+			  << "-w converts wem audio to standard wav\n"
+			  << "-h names the audio with hexadecimal, to make it easier to read\n"
+			  << "-f extracts from all the packages in the packages path\n"
+			  << "-v [version] changes the version of the game to unpack from (Default post-bl, valid options: prebl, d1)\n"
+			  << "-m extracts only music audio files\n"
+			  << "-t extracts foobar2000 & vgmstream compatible .txtp files\n"
+			  << "-b extracts ONLY .bnk files\n"
+			  << "-s [hash/ginsorid] extracts a single file, given it's hash/ginsorid\n"
+			  << "-l [backup package id] for use with -s, if you already know the package its in\n"
+			  << "-g converts to ogg"
+			  << std::endl;
 }
 
-int main(int argc, char** argv)
+int main(int argc, char **argv)
 {
 	Sarge sarge;
 
@@ -56,14 +56,14 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	std::string packagesPath, pkgId, outputPath, version, singleFileHash, backupId;
-	
+
 	sarge.getFlag("pkgspath", packagesPath);
 	sarge.getFlag("pkgsIds", pkgId);
 	sarge.getFlag("outpath", outputPath);
 	sarge.getFlag("version", version);
 	sarge.getFlag("singlefile", singleFileHash);
 	sarge.getFlag("pkgbackup", backupId);
-	
+
 	if (packagesPath == "")
 	{
 		std::cerr << "Invalid parameters, potentially backslashes in paths or paths not given.\n";
@@ -78,11 +78,10 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	//mainly used in the json parser python script
+	// mainly used in the json parser python script
 
 	if (singleFileHash != "")
 	{
-
 		std::string pkgid;
 		Entry audioEntry;
 		bool bFound = false;
@@ -90,15 +89,15 @@ int main(int argc, char** argv)
 			bFound = true;
 		if (backupId == "")
 		{
-			std::filesystem::path pkgsFolder{ packagesPath };
+			std::filesystem::path pkgsFolder{packagesPath};
 			std::set<std::string> existingPkgIDS;
 			std::vector<std::string> pkgf;
-			for (auto const& dir_entry : std::filesystem::directory_iterator{ pkgsFolder })
+			for (auto const &dir_entry : std::filesystem::directory_iterator{pkgsFolder})
 			{
 				std::string pkgidfolder = dir_entry.path().string();
 				pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
 				if (existingPkgIDS.find(pkgidfolder) == existingPkgIDS.end())
-				{				
+				{
 					if (dir_entry.path().string().find("audio") != std::string::npos)
 					{
 						std::string tt, pkgidf;
@@ -175,9 +174,9 @@ int main(int argc, char** argv)
 							bnkSubType = 6;
 							bnkSubType2 = 6;
 						}
-						unsigned char* data = nullptr;
+						unsigned char *data = nullptr;
 						std::string name = "";
-						FILE* oFile = nullptr;
+						FILE *oFile = nullptr;
 						if (outputPath == "")
 							outputPath = uint16ToHexStr(Pkg.header.pkgID);
 						std::filesystem::create_directories(outputPath);
@@ -245,7 +244,6 @@ int main(int argc, char** argv)
 							fclose(oFile);
 						}
 
-
 						exit(0);
 					}
 				}
@@ -296,7 +294,7 @@ int main(int argc, char** argv)
 		}
 		int fileSize;
 		uint8_t t = 0, st = 0;
-		unsigned char* data = nullptr;
+		unsigned char *data = nullptr;
 		if (audioEntry.reference != "")
 		{
 			data = pkg.getBufferFromEntry(audioEntry);
@@ -306,8 +304,8 @@ int main(int argc, char** argv)
 		}
 		else
 			data = pkg.getEntryData(singleFileHash, fileSize);
-		
-		FILE* oFile;
+
+		FILE *oFile;
 		std::string name;
 		if (audioEntry.reference == "")
 		{
@@ -315,8 +313,7 @@ int main(int argc, char** argv)
 			t = bnkentry.numType;
 			st = bnkentry.numSubType;
 		}
-		
-		
+
 		if (outputPath == "")
 			outputPath = uint16ToHexStr(pkg.header.pkgID);
 		std::filesystem::create_directories(outputPath);
@@ -388,10 +385,10 @@ int main(int argc, char** argv)
 	else if (sarge.exists("folder"))
 	{
 		std::string pkgidold;
-		std::filesystem::path pkgsFolder{ packagesPath };
+		std::filesystem::path pkgsFolder{packagesPath};
 		std::set<std::string> existingPkgIDS;
 		std::vector<std::string> pkgf;
-		for (auto const& dir_entry : std::filesystem::directory_iterator{ pkgsFolder })
+		for (auto const &dir_entry : std::filesystem::directory_iterator{pkgsFolder})
 		{
 			std::string pkgidfolder = dir_entry.path().string();
 			pkgidfolder = pkgidfolder.substr((pkgidfolder.size() - 10), 4);
@@ -440,7 +437,7 @@ int main(int argc, char** argv)
 				else
 					continue;
 				*/
-				if ((sarge.exists("music_only") || sarge.exists("u")) && dir_entry.path().string().find("audio") == std::string::npos)
+				if (((sarge.exists("music_only") || sarge.exists("u")) && !boost::iequals(version, "d1")) && dir_entry.path().string().find("audio") == std::string::npos)
 				{
 					continue;
 				}
@@ -476,10 +473,10 @@ int main(int argc, char** argv)
 			Pkg.HashMap = masterHashMap;
 
 			Pkg.options = options;
-				
+
 			Pkg.Unpack();
 			masterHashMap = Pkg.HashMap;
-			//std::cout << "aaa\n";
+			// std::cout << "aaa\n";
 		}
 
 		if (sarge.exists("hashgen"))
@@ -491,44 +488,44 @@ int main(int argc, char** argv)
 			std::cin >> compare;
 			if (compare == "y" || compare == "Y" || compare == "")
 			{
-				FILE* old_hashes_file = nullptr;
+				FILE *old_hashes_file = nullptr;
 				old_hashes_file = _fsopen("hashes_4_1_0.bin", "rb", _SH_DENYNO);
-				if (old_hashes_file == nullptr) {
+				if (old_hashes_file == nullptr)
+				{
 					std::perror("Error opening hashes file");
 					exit(1);
 				}
 				int8_t type = -1;
 				fseek(old_hashes_file, 0, SEEK_SET);
-				fread((char*)&type, 1, 1, old_hashes_file);
+				fread((char *)&type, 1, 1, old_hashes_file);
 				uint32_t table_size = 0;
-				fread((char*)&table_size, 1, 4, old_hashes_file);
+				fread((char *)&table_size, 1, 4, old_hashes_file);
 				uint32_t file_name = 0;
 				uint64_t hash_value = 0;
-
 
 				switch (type)
 				{
 				case 'w':
 					for (int i = 0; i < table_size * 0xC; i += 0xC)
 					{
-						fread((char*)&file_name, 1, 4, old_hashes_file);
-						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						fread((char *)&file_name, 1, 4, old_hashes_file);
+						fread((char *)&hash_value, 1, 8, old_hashes_file);
 						old_masterHashMap["wem"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
 					}
 					break;
 				case 'b':
 					for (int i = 0; i < table_size * 0xC; i += 0xC)
 					{
-						fread((char*)&file_name, 1, 4, old_hashes_file);
-						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						fread((char *)&file_name, 1, 4, old_hashes_file);
+						fread((char *)&hash_value, 1, 8, old_hashes_file);
 						old_masterHashMap["bnk"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
 					}
 					break;
 				case 'u':
 					for (int i = 0; i < table_size * 0xC; i += 0xC)
 					{
-						fread((char*)&file_name, 1, 4, old_hashes_file);
-						fread((char*)&hash_value, 1, 8, old_hashes_file);
+						fread((char *)&file_name, 1, 4, old_hashes_file);
+						fread((char *)&hash_value, 1, 8, old_hashes_file);
 						old_masterHashMap["unk"][boost::to_upper_copy(uint32ToHexStr(file_name))] = hash_value;
 					}
 					break;
@@ -538,27 +535,29 @@ int main(int argc, char** argv)
 				}
 				fclose(old_hashes_file);
 			}
-			FILE* hashes_file = nullptr;
+			FILE *hashes_file = nullptr;
 			hashes_file = _fsopen("hashes", "wb", _SH_DENYNO);
-			if (hashes_file == nullptr) {
+			if (hashes_file == nullptr)
+			{
 				std::perror("Error opening hashes file");
 				exit(1);
 			}
-			for (auto& element : masterHashMap)
+			for (auto &element : masterHashMap)
 			{
 				if (sarge.exists("hashgen"))
 				{
-					for (auto& old_element : old_masterHashMap)
+					for (auto &old_element : old_masterHashMap)
 					{
-						for (auto& sub_element : element.second)
+						for (auto &sub_element : element.second)
 						{
-							for (auto& old_sub_element : old_element.second)
+							for (auto &old_sub_element : old_element.second)
 							{
 								if (sub_element.first == old_sub_element.first && (sub_element.second != old_sub_element.second))
 								{
 									diff_Hashes.push_back(sub_element.first);
 									std::cout << "OLD | " << old_sub_element.first << " : " << old_sub_element.second << '\n';
-									std::cout << "NEW | " << sub_element.first << " : " << sub_element.second << '\n' << '\n';
+									std::cout << "NEW | " << sub_element.first << " : " << sub_element.second << '\n'
+											  << '\n';
 								}
 							}
 						}
@@ -591,13 +590,12 @@ int main(int argc, char** argv)
 					uint32_t size = masterHashMap["unk"].size();
 					fwrite(&size, 1, 4, hashes_file);
 				}
-				for (auto& sub_element : element.second)
+				for (auto &sub_element : element.second)
 				{
 					std::cout << element.first << " with hash/id " + sub_element.first + " has XXH64 hash value " + boost::to_upper_copy(uint64ToHexStr(sub_element.second)) << "\n";
 					uint32_t write_hash = hexStrToUint32(sub_element.first);
 					fwrite(&write_hash, 1, 4, hashes_file);
-					fwrite((char*)&sub_element.second, 1, 8, hashes_file);
-
+					fwrite((char *)&sub_element.second, 1, 8, hashes_file);
 				}
 			}
 
@@ -610,7 +608,7 @@ int main(int argc, char** argv)
 		Package Pkg(pkgId, packagesPath, (boost::iequals(version, "prebl") || boost::iequals(version, "d1")));
 
 		PackageOptions options;
-		
+
 		options.txtpgen = sarge.exists("txtpgen");
 		options.hexid = sarge.exists("hexid");
 		options.wavconv = sarge.exists("wavconv");
@@ -626,16 +624,17 @@ int main(int argc, char** argv)
 		Pkg.options = options;
 
 		Pkg.Unpack();
-		
+
 		if (sarge.exists("hashgen"))
 		{
-			FILE* hashes_file = nullptr;
+			FILE *hashes_file = nullptr;
 			hashes_file = _fsopen("hashes", "wb", _SH_DENYNO);
-			if (hashes_file == nullptr) {
+			if (hashes_file == nullptr)
+			{
 				std::perror("buh");
 				exit(1);
 			}
-			for (auto& element : Pkg.HashMap)
+			for (auto &element : Pkg.HashMap)
 			{
 				if (element.first == "wem")
 				{
@@ -655,12 +654,12 @@ int main(int argc, char** argv)
 					uint16_t size = Pkg.HashMap["unk"].size();
 					fwrite(&size, 1, 2, hashes_file);
 				}
-				for (auto& sub_element : element.second)
+				for (auto &sub_element : element.second)
 				{
 					std::cout << element.first << " with hash/id " + sub_element.first + " has XXH64 hash value " + boost::to_upper_copy(uint64ToHexStr(sub_element.second)) << "\n";
 					uint32_t write_hash = hexStrToUint32(sub_element.first);
 					fwrite(&write_hash, 1, 4, hashes_file);
-					fwrite((char*)&sub_element.second, 1, 8, hashes_file);
+					fwrite((char *)&sub_element.second, 1, 8, hashes_file);
 				}
 			}
 			fclose(hashes_file);
